@@ -1,36 +1,42 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Puzzle } from '../types';
+import type { Puzzle, OrderingPuzzle, VisualPuzzle } from '../types';
 
-// Initialize the Google Gemini AI client
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY!});
 
-const puzzleSchema = {
+const orderingPuzzleSchema = {
   type: Type.OBJECT,
   properties: {
-    clue: {
-      type: Type.STRING,
-      description: 'The riddle or clue for the puzzle in Arabic.',
-    },
-    answer: {
-      type: Type.STRING,
-      description: 'The correct answer to the puzzle in Arabic.',
-    },
-    options: {
+    type: { type: Type.STRING, enum: ['ordering'] },
+    title: { type: Type.STRING, description: "عنوان مبتكر لعملية أو مشروع باللغة العربية (مثال: 'خطوات إطلاق حملة تسويقية ناجحة')." },
+    steps: {
       type: Type.ARRAY,
-      description: 'An array of 4 options in Arabic, one of which is the correct answer.',
-      items: {
-        type: Type.STRING,
-      },
+      description: "قائمة من 4 خطوات مرتبة بشكل منطقي وصحيح باللغة العربية.",
+      items: { type: Type.STRING }
     },
   },
-  required: ['clue', 'answer', 'options'],
+  required: ['type', 'title', 'steps'],
+};
+
+const visualPuzzleSchema = {
+  type: Type.OBJECT,
+  properties: {
+    type: { type: Type.STRING, enum: ['visual'] },
+    question: { type: Type.STRING, description: "سؤال باللغة العربية حول مفهوم ابتكاري يمكن تمثيله بأيقونة (مثال: 'أي رمز يمثل التعاون بين فريق العمل؟')." },
+    options: {
+      type: Type.ARRAY,
+      description: "مصفوفة من 4 أسماء أيقونات باللغة الإنجليزية من القائمة التالية: 'IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon', 'TargetIcon'.",
+      items: { type: Type.STRING }
+    },
+    answer: { type: Type.STRING, description: "اسم الأيقونة الصحيحة من الخيارات المتاحة." }
+  },
+  required: ['type', 'question', 'options', 'answer'],
 };
 
 export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle[]> => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `Generate ${count} unique and challenging puzzles in Arabic. The puzzles should be suitable for a general audience. For each puzzle, provide a clue, the correct answer, and 4 multiple-choice options (including the correct answer). Ensure the options are shuffled and that the correct answer is always one of the options.`,
+      contents: `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
@@ -39,50 +45,41 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
             puzzles: {
               type: Type.ARRAY,
               description: `An array of exactly ${count} puzzle objects.`,
-              items: puzzleSchema,
-            },
+              items: {
+                oneOf: [orderingPuzzleSchema, visualPuzzleSchema]
+              }
+            }
           },
-          required: ['puzzles'],
+          required: ['puzzles']
         },
         ...(seed && { seed }),
       },
     });
 
     const jsonString = response.text.trim();
-    if (!jsonString) {
-      console.error('Gemini response is empty.');
-      return [];
-    }
-
     const parsed = JSON.parse(jsonString);
-    
+
     if (parsed.puzzles && Array.isArray(parsed.puzzles) && parsed.puzzles.length > 0) {
-        // Validate that the parsed data matches the Puzzle interface
-        const puzzles: Puzzle[] = parsed.puzzles.filter((p: any) => 
-            p.clue && typeof p.clue === 'string' &&
-            p.answer && typeof p.answer === 'string' &&
-            p.options && Array.isArray(p.options) && p.options.length === 4 &&
-            p.options.every((opt: any) => typeof opt === 'string') &&
-            p.options.includes(p.answer)
-        ).map((p: any) => ({
-            clue: p.clue,
-            answer: p.answer,
-            options: p.options,
-        }));
-
-        if (puzzles.length === 0) {
-          console.error('Parsed puzzles do not match expected schema.', parsed.puzzles);
-          return [];
+      const puzzles: Puzzle[] = parsed.puzzles.map((p: any) => {
+        if (p.type === 'ordering') {
+          return { ...p, shuffled: [...p.steps].sort(() => Math.random() - 0.5) };
         }
-
-        return puzzles.slice(0, count);
+        return p;
+      });
+      return puzzles.slice(0, count);
     }
 
-    console.error('Failed to parse puzzles from Gemini response or puzzles array is empty:', parsed);
-    return [];
-
+    throw new Error('Failed to parse puzzles or puzzles array is empty');
   } catch (error) {
     console.error("Error fetching puzzles from Gemini API:", error);
-    return [];
+    // Fallback to mock data if API fails
+    const mockPuzzles: Puzzle[] = [
+        { type: 'ordering', title: 'خطوات إطلاق منتج جديد', shuffled: ['إجراء أبحاث السوق', 'تطوير المنتج', 'اختبار النسخة التجريبية', 'التسويق والإطلاق'].sort(() => Math.random() - 0.5), steps: ['إجراء أبحاث السوق', 'تطوير المنتج', 'اختبار النسخة التجريبية', 'التسويق والإطلاق'] },
+        { type: 'visual', question: 'أي رمز يمثل "النمو" في المشاريع؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'GrowthIcon' },
+        { type: 'ordering', title: 'مراحل التفكير التصميمي', shuffled: ['التعاطف', 'تحديد المشكلة', 'التفكير', 'النمذجة الأولية', 'الاختبار'].slice(0, 4).sort(() => Math.random() - 0.5), steps: ['التعاطف', 'تحديد المشكلة', 'التفكير', 'النمذجة الأولية', 'الاختبار'].slice(0, 4) },
+        { type: 'visual', question: 'أي رمز يمثل "تحليل البيانات"؟', options: ['TargetIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'DataIcon' },
+        { type: 'ordering', title: 'خطوات جلسة عصف ذهني فعالة', shuffled: ['تحديد الهدف', 'توليد الأفكار بحرية', 'مناقشة وتجميع الأفكار', 'تحديد أفضل الحلول'].sort(() => Math.random() - 0.5), steps: ['تحديد الهدف', 'توليد الأفكار بحرية', 'مناقشة وتجميع الأفكار', 'تحديد أفضل الحلول'] },
+    ];
+    return mockPuzzles.slice(0, count);
   }
 };
