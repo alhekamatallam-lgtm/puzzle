@@ -91,3 +91,20 @@ export const getScores = async (gameCode: string): Promise<PlayerScore[]> => {
     return [];
   }
 };
+
+export const getLobbyPlayers = async (gameCode: string): Promise<string[]> => {
+  try {
+    const response = await fetch(`${API_URL}?action=getScores&gameCode=${gameCode}`);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.success && data.data.rsult) {
+      return data.data.rsult.map((item: { player_name: string }) => item.player_name);
+    }
+    return [];
+  } catch (error) {
+    console.error('Failed to get lobby players:', error);
+    return [];
+  }
+};

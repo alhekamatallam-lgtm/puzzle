@@ -42,9 +42,13 @@ const visualPuzzleSchema = {
 export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle[]> => {
   try {
     const generativeAi = getAi();
+    // Add a random element to the prompt to ensure variety in every game session.
+    const randomizer = `Random seed for variety: ${Math.random()}`;
+    const prompt = `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons. ${randomizer}`;
+
     const response = await generativeAi.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`,
+      contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
