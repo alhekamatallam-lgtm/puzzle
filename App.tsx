@@ -162,7 +162,7 @@ const App: React.FC = () => {
 
   return (
     <div 
-        className="min-h-screen text-white font-cairo-regular flex flex-col items-center justify-center p-4" 
+        className="min-h-screen text-white font-cairo-regular flex flex-col items-center justify-center p-4 sm:p-6" 
         dir="rtl"
         style={{ background: 'radial-gradient(ellipse at center, #113054 0%, #0A192F 80%)' }}
     >

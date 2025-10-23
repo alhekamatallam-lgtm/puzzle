@@ -148,12 +148,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
   }
   
   return (
-    <div className="w-full max-w-3xl mx-auto p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700">
+    <div className="w-full max-w-2xl mx-auto p-4 sm:p-6 md:p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-xl font-bold text-slate-200">
+        <div className="text-base sm:text-xl font-bold text-slate-200">
           السؤال {currentPuzzleIndex + 1} / {puzzles.length}
         </div>
-        <div className={`flex items-center gap-2 text-2xl font-bold ${timeRemaining < 10000 ? 'text-red-500' : 'text-orange-400'}`} style={{fontFamily: "'Orbitron', sans-serif"}}>
+        <div className={`flex items-center gap-2 text-xl sm:text-2xl font-bold ${timeRemaining < 10000 ? 'text-red-500' : 'text-orange-400'}`} style={{fontFamily: "'Orbitron', sans-serif"}}>
           <TimerIcon className="w-6 h-6" />
           {formatTime(timeRemaining)}
         </div>
@@ -161,8 +161,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
       
       {currentPuzzle.type === 'ordering' && (
         <div>
-          <div className="bg-slate-900/50 p-6 rounded-lg mb-8">
-            <p className="text-2xl text-center font-cairo-bold text-slate-100 leading-relaxed">رتب الخطوات التالية بالترتيب الصحيح:<br/> <span className="text-teal-400">{currentPuzzle.title}</span></p>
+          <div className="bg-slate-900/50 p-4 sm:p-6 rounded-lg mb-8">
+            <p className="text-xl sm:text-2xl text-center font-cairo-bold text-slate-100 leading-relaxed">رتب الخطوات التالية بالترتيب الصحيح:<br/> <span className="text-teal-400">{currentPuzzle.title}</span></p>
           </div>
           <div className="space-y-3">
             {orderedSteps.map((step, index) => (
@@ -172,7 +172,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, index)}
-                className={`p-4 rounded-lg text-lg text-white font-medium text-center cursor-grab active:cursor-grabbing bg-slate-700 flex items-center justify-center transition-transform duration-300 ${isWrong ? 'animate-shake' : ''}`}
+                className={`p-3 text-base sm:p-4 sm:text-lg rounded-lg text-white font-medium text-center cursor-grab active:cursor-grabbing bg-slate-700 flex items-center justify-center transition-transform duration-300 ${isWrong ? 'animate-shake' : ''}`}
               >
                 {step}
               </div>
@@ -186,8 +186,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
 
       {currentPuzzle.type === 'visual' && (
         <div>
-          <div className="bg-slate-900/50 p-6 rounded-lg mb-8">
-            <p className="text-2xl text-center font-cairo-bold text-slate-100 leading-relaxed">{currentPuzzle.question}</p>
+          <div className="bg-slate-900/50 p-4 sm:p-6 rounded-lg mb-8">
+            <p className="text-xl sm:text-2xl text-center font-cairo-bold text-slate-100 leading-relaxed">{currentPuzzle.question}</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {currentPuzzle.options.map((iconName) => {
@@ -199,7 +199,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
                         disabled={!!selectedIcon}
                         className={`aspect-square rounded-lg flex items-center justify-center transition-all duration-300 ${getIconClass(iconName)}`}
                     >
-                        {Icon && <Icon className="w-16 h-16 text-white" />}
+                        {Icon && <Icon className="w-14 h-14 sm:w-16 sm:h-16 text-white" />}
                     </button>
                 )
             })}

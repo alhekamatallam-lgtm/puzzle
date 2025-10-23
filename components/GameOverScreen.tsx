@@ -8,10 +8,10 @@ interface GameOverScreenProps {
 
 export const GameOverScreen: React.FC<GameOverScreenProps> = ({ onPlayAgain }) => {
     return (
-        <div className="w-full max-w-md mx-auto p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700 text-center">
+        <div className="w-full max-w-md mx-auto p-6 sm:p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700 text-center">
             <TimeUpIcon className="w-20 h-20 text-red-500 mx-auto mb-4" />
-            <h1 className="text-4xl font-cairo-black text-slate-100 mb-2">انتهى الوقت!</h1>
-            <p className="text-slate-300 mb-8">
+            <h1 className="text-3xl sm:text-4xl font-cairo-black text-slate-100 mb-2">انتهى الوقت!</h1>
+            <p className="text-slate-300 mb-8 text-base sm:text-lg">
                 حظاً أوفر في المرة القادمة. هل تريد المحاولة مرة أخرى؟
             </p>
             

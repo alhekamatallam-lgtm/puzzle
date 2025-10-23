@@ -17,12 +17,12 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStartGame, isPartyMo
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700">
+    <div className="w-full max-w-md mx-auto p-6 sm:p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-cairo-black text-slate-100">
+        <h1 className="text-3xl sm:text-4xl font-cairo-black text-slate-100">
           {isPartyMode ? 'إنشاء غرفة لعب' : 'تحدي الألغاز الفردي'}
         </h1>
-        <p className="text-slate-300 mt-2">
+        <p className="text-slate-300 mt-2 text-sm sm:text-base">
             {isPartyMode ? 'ستكون أنت المضيف لهذه الجولة.' : 'اختبر معلوماتك وسرعتك. هل أنت مستعد؟'}
         </p>
       </div>
@@ -32,7 +32,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStartGame, isPartyMo
           <input
             type="text"
             id="playerName"
-            className="bg-slate-700 border border-slate-600 text-slate-100 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 placeholder-slate-400"
+            className="bg-slate-700 border border-slate-600 text-slate-100 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-3 placeholder-slate-400"
             placeholder="اللاعب"
             value={name}
             onChange={(e) => setName(e.target.value)}

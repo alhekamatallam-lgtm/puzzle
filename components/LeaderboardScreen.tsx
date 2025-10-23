@@ -41,31 +41,31 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboar
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700">
+    <div className="w-full max-w-md md:max-w-2xl mx-auto p-6 sm:p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-cairo-black text-slate-100">اكتمل التحدي!</h1>
-        <p className="text-slate-300 mt-2">
+        <h1 className="text-2xl sm:text-3xl font-cairo-black text-slate-100">اكتمل التحدي!</h1>
+        <p className="text-slate-300 mt-2 text-base sm:text-lg">
           عمل رائع، <span className="font-bold text-orange-400">{playerName}</span>! وقتك النهائي هو:
         </p>
-        <p className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-teal-500 my-4" style={{fontFamily: "'Orbitron', sans-serif"}}>
+        <p className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-teal-500 my-4" style={{fontFamily: "'Orbitron', sans-serif"}}>
           {formatTime(playerTime)}
         </p>
       </div>
 
       {gameMode === 'solo' && (
         <div className="mb-8">
-            <h2 className="flex items-center justify-center gap-2 text-2xl font-cairo-bold text-center mb-4 text-slate-200">
+            <h2 className="flex items-center justify-center gap-2 text-xl sm:text-2xl font-cairo-bold text-center mb-4 text-slate-200">
             <TrophyIcon className="w-7 h-7 text-amber-400" />
             لوحة الصدارة
             </h2>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                 {leaderboard.map((score, index) => (
-                    <div key={index} className={`flex justify-between items-center p-3 rounded-lg ${score.name === playerName && score.time === playerTime ? 'bg-teal-600/50 border-teal-500 border' : 'bg-slate-700/50'}`}>
+                    <div key={index} className={`flex justify-between items-center p-2 sm:p-3 rounded-lg ${score.name === playerName && score.time === playerTime ? 'bg-teal-600/50 border-teal-500 border' : 'bg-slate-700/50'}`}>
                         <div className="flex items-center gap-4">
-                            <span className={`w-8 text-center text-xl font-bold ${getRankColor(index + 1)}`}>{index + 1}</span>
-                            <span className="text-lg font-medium text-slate-100">{score.name}</span>
+                            <span className={`w-8 text-center text-lg sm:text-xl font-bold ${getRankColor(index + 1)}`}>{index + 1}</span>
+                            <span className="text-base sm:text-lg font-medium text-slate-100">{score.name}</span>
                         </div>
-                        <span className="text-lg font-bold text-slate-300" style={{fontFamily: "'Orbitron', sans-serif"}}>{formatTime(score.time)}</span>
+                        <span className="text-base sm:text-lg font-bold text-slate-300" style={{fontFamily: "'Orbitron', sans-serif"}}>{formatTime(score.time)}</span>
                     </div>
                 ))}
             </div>
