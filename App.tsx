@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchPuzzles } from './services/geminiService';
+import { registerPlayer, updateScore } from './services/apiService';
 import { StartScreen } from './components/StartScreen';
 import { GameScreen } from './components/GameScreen';
 import { LeaderboardScreen } from './components/LeaderboardScreen';
@@ -10,6 +11,7 @@ import { ModeSelectScreen } from './components/ModeSelectScreen';
 import { PartyLobbyScreen } from './components/PartyLobbyScreen';
 import { JoinPartyScreen } from './components/JoinPartyScreen';
 import { PartyModeSelectScreen } from './components/PartyModeSelectScreen';
+import { PartyResultsScreen } from './components/PartyResultsScreen';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('mode-select');
@@ -81,6 +83,7 @@ const App: React.FC = () => {
     setIsHost(true);
     const newGameCode = String(Math.floor(1000 + Math.random() * 9000));
     setGameCode(newGameCode);
+    registerPlayer(newGameCode, name);
     setGameState('lobby');
   };
   
@@ -88,6 +91,7 @@ const App: React.FC = () => {
       setPlayerName(name);
       setIsHost(false);
       setGameCode(code);
+      registerPlayer(code, name);
       setGameState('lobby');
   };
 
@@ -104,14 +108,18 @@ const App: React.FC = () => {
 
   const handleGameFinish = (time: number) => {
     setPlayerTime(time);
+    const newScore: PlayerScore = { name: playerName, time };
+    
     if (gameMode === 'solo') {
-        const newScore: PlayerScore = { name: playerName, time };
         const newLeaderboard = [...leaderboard, newScore]
             .sort((a, b) => a.time - b.time)
             .slice(0, 10);
         setLeaderboard(newLeaderboard);
+        setGameState('finished');
+    } else { // party mode
+        updateScore(gameCode, playerName, time);
+        setGameState('party-results');
     }
-    setGameState('finished');
   };
 
   const handleGameOver = () => {
@@ -155,6 +163,8 @@ const App: React.FC = () => {
         return <LeaderboardScreen leaderboard={leaderboard} playerName={playerName} playerTime={playerTime} onPlayAgain={handlePlayAgain} gameMode={gameMode}/>;
       case 'gameOver':
           return <GameOverScreen onPlayAgain={handlePlayAgain} />;
+      case 'party-results':
+          return <PartyResultsScreen playerName={playerName} gameCode={gameCode} onPlayAgain={handlePlayAgain} />;
       default:
         return null;
     }

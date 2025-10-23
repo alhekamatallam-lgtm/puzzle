@@ -1,4 +1,4 @@
-export type GameState = 'mode-select' | 'party-mode-select' | 'create-party' | 'join-party' | 'lobby' | 'playing' | 'finished' | 'gameOver' | 'solo-name-entry';
+export type GameState = 'mode-select' | 'party-mode-select' | 'create-party' | 'join-party' | 'lobby' | 'playing' | 'finished' | 'gameOver' | 'solo-name-entry' | 'party-results';
 export type GameMode = 'solo' | 'party';
 
 export interface OrderingPuzzle {
