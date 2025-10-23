@@ -42,9 +42,15 @@ const visualPuzzleSchema = {
 export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle[]> => {
   try {
     const generativeAi = getAi();
-    // Add a random element to the prompt to ensure variety in every game session.
-    const randomizer = `Random seed for variety: ${Math.random()}`;
-    const prompt = `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons. ${randomizer}`;
+    // Use a deterministic prompt for party mode (when a seed is provided)
+    // and a randomized prompt for solo mode to ensure variety.
+    let prompt = `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`;
+
+    if (!seed) {
+      // Add a random element only for solo games to ensure variety in every session.
+      const randomizer = `Random element for variety: ${Math.random()}`;
+      prompt = `${prompt} ${randomizer}`;
+    }
 
     const response = await generativeAi.models.generateContent({
       model: 'gemini-2.5-flash',
