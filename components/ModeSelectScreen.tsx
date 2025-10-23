@@ -1,0 +1,42 @@
+import React from 'react';
+import type { GameMode } from '../types';
+import { CollaborationIcon } from './icons/CollaborationIcon';
+import { TargetIcon } from './icons/TargetIcon';
+
+interface ModeSelectScreenProps {
+  onSelectMode: (mode: GameMode) => void;
+}
+
+export const ModeSelectScreen: React.FC<ModeSelectScreenProps> = ({ onSelectMode }) => {
+  return (
+    <div className="w-full max-w-lg mx-auto p-8 text-center">
+      <div className="mx-auto mb-6 bg-white rounded-full p-3 w-40 h-40 flex items-center justify-center drop-shadow-[0_8px_16px_rgba(245,130,32,0.2)]">
+        <img
+          src="https://sekaya.org.sa/wp-content/uploads/2025/01/99.png"
+          alt="شعار سكایا"
+          className="w-full h-auto"
+        />
+      </div>
+      <h1 className="text-4xl font-cairo-black text-slate-100 leading-tight">
+        تحدي الألغاز<br /><span className="text-orange-400">الابتكارية</span>
+      </h1>
+      <p className="text-lg text-slate-300 mt-4 mb-10">اختر وضع اللعب الذي تفضله.</p>
+      <div className="max-w-md mx-auto flex flex-col gap-4">
+        <button
+          onClick={() => onSelectMode('solo')}
+          className="w-full flex items-center justify-center gap-3 text-white bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:outline-none focus:ring-orange-800 font-bold rounded-lg text-lg px-5 py-4 text-center transition-all duration-300 transform hover:scale-105"
+        >
+          <TargetIcon className="w-7 h-7" />
+          <span>لعب فردي</span>
+        </button>
+        <button
+          onClick={() => onSelectMode('party')}
+          className="w-full flex items-center justify-center gap-3 text-white bg-teal-600 hover:bg-teal-700 focus:ring-4 focus:outline-none focus:ring-teal-800 font-bold rounded-lg text-lg px-5 py-4 text-center transition-all duration-300 transform hover:scale-105"
+        >
+          <CollaborationIcon className="w-7 h-7" />
+          <span>لعب جماعي</span>
+        </button>
+      </div>
+    </div>
+  );
+};
