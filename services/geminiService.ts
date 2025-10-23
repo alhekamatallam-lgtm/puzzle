@@ -1,7 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Puzzle, OrderingPuzzle, VisualPuzzle } from '../types';
 
-const ai = new GoogleGenAI({apiKey: process.env.API_KEY!});
+let ai: GoogleGenAI | null = null;
+
+const getAi = (): GoogleGenAI => {
+  if (!ai) {
+    ai = new GoogleGenAI({apiKey: process.env.API_KEY!});
+  }
+  return ai;
+}
 
 const orderingPuzzleSchema = {
   type: Type.OBJECT,
@@ -34,7 +41,8 @@ const visualPuzzleSchema = {
 
 export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle[]> => {
   try {
-    const response = await ai.models.generateContent({
+    const generativeAi = getAi();
+    const response = await generativeAi.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`,
       config: {
