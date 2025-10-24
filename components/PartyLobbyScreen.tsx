@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { TargetIcon } from './icons/TargetIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
-import { getLobbyPlayers } from '../services/apiService';
+import { getLobbyPlayers, signalGameStart } from '../services/apiService';
 import { UsersIcon } from './icons/UsersIcon';
+import { ReplayIcon } from './icons/ReplayIcon';
+
+const GAME_START_SIGNAL = '__GAME_START__';
 
 interface PartyLobbyScreenProps {
   gameCode: string;
@@ -14,11 +17,16 @@ export const PartyLobbyScreen: React.FC<PartyLobbyScreenProps> = ({ gameCode, is
     const [copied, setCopied] = useState(false);
     const [players, setPlayers] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isStarting, setIsStarting] = useState(false);
 
     useEffect(() => {
         const fetchPlayers = async () => {
             try {
                 const fetchedPlayers = await getLobbyPlayers(gameCode);
+                if (fetchedPlayers.includes(GAME_START_SIGNAL)) {
+                    onStart();
+                    return; 
+                }
                 setPlayers(fetchedPlayers);
             } catch (error) {
                 console.error("Failed to fetch players:", error);
@@ -27,16 +35,21 @@ export const PartyLobbyScreen: React.FC<PartyLobbyScreenProps> = ({ gameCode, is
             }
         };
 
-        fetchPlayers();
         const intervalId = setInterval(fetchPlayers, 3000);
+        fetchPlayers();
         return () => clearInterval(intervalId);
-    }, [gameCode]);
+    }, [gameCode, onStart]);
 
     const handleCopyCode = () => {
         navigator.clipboard.writeText(gameCode).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         });
+    };
+
+    const handleHostStart = async () => {
+      setIsStarting(true);
+      await signalGameStart(gameCode);
     };
 
   return (
@@ -82,16 +95,30 @@ export const PartyLobbyScreen: React.FC<PartyLobbyScreenProps> = ({ gameCode, is
             </div>
         </div>
         
-        <button
-            onClick={onStart}
-            className="w-full flex items-center justify-center gap-2 text-white bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:outline-none focus:ring-orange-800 font-bold rounded-lg text-lg px-5 py-3 text-center transition-all duration-300 transform hover:scale-105"
-        >
-            <TargetIcon className="w-6 h-6"/>
-            {isHost ? 'ابدأ اللعبة للجميع' : 'ابدأ التحدي'}
-        </button>
-        <p className="text-xs text-slate-500 mt-2 px-4">
-            {isHost ? 'عند الضغط على البدء، يجب على جميع اللاعبين الضغط على زر البدء أيضًا.' : 'انتظر إشارة المضيف ثم اضغط على زر البدء.'}
-        </p>
+        {isHost ? (
+            <button
+                onClick={handleHostStart}
+                disabled={isStarting}
+                className="w-full flex items-center justify-center gap-2 text-white bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:outline-none focus:ring-orange-800 font-bold rounded-lg text-lg px-5 py-3 text-center transition-all duration-300 transform hover:scale-105 disabled:bg-slate-600 disabled:cursor-not-allowed"
+            >
+                {isStarting ? (
+                    <>
+                        <ReplayIcon className="w-6 h-6 animate-spin" />
+                        ...جاري البدء
+                    </>
+                ) : (
+                    <>
+                        <TargetIcon className="w-6 h-6"/>
+                        ابدأ اللعبة للجميع
+                    </>
+                )}
+            </button>
+        ) : (
+            <div className="mt-8 text-center p-4 bg-slate-900/50 rounded-lg">
+                <p className="text-lg text-slate-300">في انتظار المضيف لبدء اللعبة...</p>
+                <SparklesIcon className="w-8 h-8 animate-pulse mx-auto mt-3 text-teal-400" />
+            </div>
+        )}
     </div>
   );
 };

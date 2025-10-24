@@ -18,8 +18,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboar
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
     const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-    const milliseconds = (ms % 1000).toString().padStart(3, '0').slice(0, 2);
-    return `${minutes}:${seconds}.${milliseconds}`;
+    return `${minutes}:${seconds}`;
   };
 
   const getRankColor = (rank: number) => {

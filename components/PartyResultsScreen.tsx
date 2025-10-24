@@ -44,8 +44,7 @@ export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerNa
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
     const secondsValue = (totalSeconds % 60).toString().padStart(2, '0');
-    const millisecondsValue = (ms % 1000).toString().padStart(3, '0').slice(0, 2);
-    return `${minutes}:${secondsValue}.${millisecondsValue}`;
+    return `${minutes}:${secondsValue}`;
   };
   
   const getRankColor = (rank: number) => {
@@ -79,7 +78,7 @@ export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerNa
             {sortedScores.map((score, index) => (
                 <div key={index} className={`flex justify-between items-center p-3 rounded-lg ${score.name === playerName ? 'bg-teal-600/50 border-teal-500 border' : 'bg-slate-700/50'}`}>
                 <div className="flex items-center gap-4">
-                    <span className={`w-8 text-center text-xl font-bold ${getRankColor(index + 1)}`}>{index + 1}</span>
+                    <span className={`w-12 text-center text-lg font-bold ${getRankColor(index + 1)}`}>{score.place || index + 1}</span>
                     <span className="text-lg font-medium text-slate-100">{score.name}</span>
                 </div>
                 <span className="text-lg font-bold text-slate-300" style={{ fontFamily: "'Orbitron', sans-serif" }}>{formatTime(score.time)}</span>

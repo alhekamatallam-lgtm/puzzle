@@ -1,4 +1,4 @@
-export type GameState = 'mode-select' | 'party-mode-select' | 'create-party' | 'join-party' | 'lobby' | 'playing' | 'finished' | 'gameOver' | 'solo-name-entry' | 'party-results';
+export type GameState = 'mode-select' | 'party-mode-select' | 'create-party' | 'join-party' | 'lobby' | 'playing' | 'finished' | 'gameOver' | 'solo-name-entry' | 'party-results' | 'database-view';
 export type GameMode = 'solo' | 'party';
 
 export interface OrderingPuzzle {
@@ -21,4 +21,6 @@ export type Puzzle = OrderingPuzzle | VisualPuzzle;
 export interface PlayerScore {
   name: string;
   time: number;
+  place?: string;
+  gaming?: string | number;
 }
