@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { TargetIcon } from './icons/TargetIcon';
+import { ReplayIcon } from './icons/ReplayIcon';
 
 interface StartScreenProps {
-  onStartGame: (name: string) => void;
+  onStartGame: (name: string) => Promise<void> | void;
   isPartyMode: boolean;
 }
 
 export const StartScreen: React.FC<StartScreenProps> = ({ onStartGame, isPartyMode }) => {
   const [name, setName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      onStartGame(name.trim());
+    if (name.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      await onStartGame(name.trim());
     }
   };
 
@@ -42,11 +45,20 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStartGame, isPartyMo
         </div>
         <button
           type="submit"
-          disabled={!name.trim()}
+          disabled={!name.trim() || isSubmitting}
           className="w-full flex items-center justify-center gap-2 text-white bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:outline-none focus:ring-orange-800 font-bold rounded-lg text-lg px-5 py-3 text-center transition-all duration-300 transform hover:scale-105 disabled:bg-slate-600 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
-          <TargetIcon className="w-6 h-6" />
-          {isPartyMode ? 'أنشئ الغرفة' : 'ابدأ التحدي'}
+          {isSubmitting ? (
+            <>
+              <ReplayIcon className="w-6 h-6 animate-spin" />
+              {isPartyMode ? 'جاري الإنشاء...' : 'جاري البدء...'}
+            </>
+          ) : (
+            <>
+              <TargetIcon className="w-6 h-6" />
+              {isPartyMode ? 'أنشئ الغرفة' : 'ابدأ التحدي'}
+            </>
+          )}
         </button>
       </form>
     </div>

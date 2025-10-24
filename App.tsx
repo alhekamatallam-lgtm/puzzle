@@ -78,20 +78,20 @@ const App: React.FC = () => {
     setGameState('join-party');
   };
 
-  const handleCreateParty = (name: string) => {
+  const handleCreateParty = async (name: string) => {
     setPlayerName(name);
     setIsHost(true);
     const newGameCode = String(Math.floor(1000 + Math.random() * 9000));
     setGameCode(newGameCode);
-    registerPlayer(newGameCode, name);
+    await registerPlayer(newGameCode, name);
     setGameState('lobby');
   };
   
-  const handleJoinParty = (name: string, code: string) => {
+  const handleJoinParty = async (name: string, code: string) => {
       setPlayerName(name);
       setIsHost(false);
       setGameCode(code);
-      registerPlayer(code, name);
+      await registerPlayer(code, name);
       setGameState('lobby');
   };
 
@@ -106,7 +106,7 @@ const App: React.FC = () => {
       handleStartGame();
   };
 
-  const handleGameFinish = (time: number) => {
+  const handleGameFinish = async (time: number) => {
     setPlayerTime(time);
     const newScore: PlayerScore = { name: playerName, time };
     
@@ -117,7 +117,7 @@ const App: React.FC = () => {
         setLeaderboard(newLeaderboard);
         setGameState('finished');
     } else { // party mode
-        updateScore(gameCode, playerName, time);
+        await updateScore(gameCode, playerName, time);
         setGameState('party-results');
     }
   };

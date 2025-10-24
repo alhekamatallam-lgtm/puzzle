@@ -72,13 +72,13 @@ export const updateScore = async (gameCode: string, playerName: string, score: n
 
 export const getScores = async (gameCode: string): Promise<PlayerScore[]> => {
   try {
-    const response = await fetch(`${API_URL}?action=getScores&gameCode=${gameCode}`);
+    const response = await fetch(`${API_URL}?action=getScores&gameCode=${gameCode}&_=${new Date().getTime()}`);
     if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}`);
     }
     const data = await response.json();
-    if (data.success && data.data.rsult) {
-      return data.data.rsult
+    if (data.success && data.data.result) {
+      return data.data.result
         .filter((item: ApiResponseScore) => item.score !== null && item.score !== '')
         .map((item: ApiResponseScore): PlayerScore => ({
           name: item.player_name,
@@ -94,13 +94,13 @@ export const getScores = async (gameCode: string): Promise<PlayerScore[]> => {
 
 export const getLobbyPlayers = async (gameCode: string): Promise<string[]> => {
   try {
-    const response = await fetch(`${API_URL}?action=getScores&gameCode=${gameCode}`);
+    const response = await fetch(`${API_URL}?action=getScores&gameCode=${gameCode}&_=${new Date().getTime()}`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
     const data = await response.json();
-    if (data.success && data.data.rsult) {
-      return data.data.rsult.map((item: { player_name: string }) => item.player_name);
+    if (data.success && data.data.result) {
+      return data.data.result.map((item: { player_name: string }) => item.player_name);
     }
     return [];
   } catch (error) {
