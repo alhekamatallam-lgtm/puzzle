@@ -1,191 +1,156 @@
 import type { PlayerScore } from '../types';
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxBffg79j82KZ8KkMbLXsmmD9BYlZbGL1lKaoEmnj8Eb5nX63hNRXEVy6XuEmkjSHBi/exec';
 const GAME_START_SIGNAL = '__GAME_START__';
 
-const parseScore = (score: any): number => {
-  if (typeof score === 'number') {
-    return score;
-  }
-  if (typeof score === 'string') {
-    // Handles "MM:SS" format
-    const timePartsMMSS = score.match(/^(\d{1,2}):(\d{2})$/);
-    if (timePartsMMSS) {
-      const minutes = parseInt(timePartsMMSS[1], 10);
-      const seconds = parseInt(timePartsMMSS[2], 10);
-      return (minutes * 60 + seconds) * 1000;
+// --- LocalStorage-based Mock API Service ---
+
+// Helper to get a party from localStorage
+const getParty = (code: string): { players: PlayerScore[], started: boolean } | null => {
+    try {
+        const data = localStorage.getItem(`party-${code}`);
+        return data ? JSON.parse(data) : null;
+    } catch (e) {
+        console.error("Failed to parse party data from localStorage", e);
+        return null;
     }
-    // Handles "HH:MM:SS" format
-     const timePartsHHMMSS = score.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
-    if (timePartsHHMMSS) {
-      const hours = parseInt(timePartsHHMMSS[1], 10);
-      const minutes = parseInt(timePartsHHMMSS[2], 10);
-      const seconds = parseInt(timePartsHHMMSS[3], 10);
-      return (hours * 3600 + minutes * 60 + seconds) * 1000;
+};
+
+// Helper to save a party to localStorage
+const saveParty = (code: string, data: { players: PlayerScore[], started: boolean }) => {
+    try {
+        localStorage.setItem(`party-${code}`, JSON.stringify(data));
+    } catch (e) {
+        console.error("Failed to save party data to localStorage", e);
+    }
+};
+
+/**
+ * Registers a player for a party. If the party doesn't exist, it creates one.
+ */
+export const registerPlayer = async (code: string, name: string): Promise<void> => {
+    // Simulate network delay
+    await new Promise(res => setTimeout(res, 300));
+
+    let party = getParty(code);
+    
+    if (party && party.started) {
+        throw new Error('Game has already started.');
+    }
+
+    if (party && party.players.some(p => p.name === name)) {
+        throw new Error('Player name is already taken in this room.');
     }
     
-    if (!isNaN(Number(score))) {
-      return Number(score);
+    if (!party) {
+        party = { players: [], started: false };
     }
     
-    const date = new Date(score);
-    if (!isNaN(date.getTime())) {
-      const hours = date.getUTCHours();
-      const minutes = date.getUTCMinutes();
-      const seconds = date.getUTCSeconds();
-      const milliseconds = date.getUTCMilliseconds();
-      return (hours * 3600000) + (minutes * 60000) + (seconds * 1000) + milliseconds;
-    }
-  }
-  return Infinity;
+    party.players.push({ name, time: Infinity });
+    saveParty(code, party);
 };
 
-// Helper to format score to MM:SS string
-const formatMsToTime = (ms: number) => {
-    if (ms === Infinity || isNaN(ms)) return '';
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-    return `${minutes}:${seconds}`;
-};
-
-interface ApiResponseScore {
-  gaming: string | number;
-  player_name: string;
-  score: string | number | null;
-  place?: string;
-}
-
-const postData = async (payload: Record<string, any>): Promise<any> => {
-    let responseText = '';
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8',
-            },
-            body: JSON.stringify(payload),
-            mode: 'cors',
-        });
-
-        responseText = await response.text();
-        
-        if (!responseText) {
-            return { success: true };
-        }
-        
-        const data = JSON.parse(responseText);
-        if (data.success === false) { 
-            throw new Error(data.message || `API Error: ${JSON.stringify(data)}`);
-        }
-        return data;
-    } catch (error) {
-        console.error(`API Error during ${payload.action}:`, error);
-        if (error instanceof Error && !(error instanceof SyntaxError)) {
-            throw error;
-        }
-        const detailedError = new Error(`API response is not valid JSON. Raw response: ${responseText}`);
-        throw detailedError;
-    }
-};
-
-
-export const registerPlayer = async (gameCode: string, playerName: string): Promise<any> => {
-  const payload = {
-    action: 'registerPlayer',
-    rsult: 'rsult',
-    gaming: gameCode,
-    player_name: playerName,
-    score: '',
-    place: '',
-  };
-  return await postData(payload);
-};
-
-export const signalGameStart = async (gameCode: string): Promise<void> => {
-  await registerPlayer(gameCode, GAME_START_SIGNAL);
-};
-
-export const updateScore = async (gameCode: string, playerName: string, score: number): Promise<void> => {
-    const payload = {
-        action: 'updateScore',
-        rsult: 'rsult',
-        gaming: gameCode,
-        player_name: playerName,
-        score: formatMsToTime(score)
-    };
-    await postData(payload);
-};
-
-const fetchData = async (params: URLSearchParams): Promise<any> => {
-    try {
-        const response = await fetch(`${API_URL}?${params.toString()}`);
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.message || 'API returned success: false');
-        }
-        return data?.data?.rsult ?? [];
-    } catch(error) {
-        console.error(`API Error during fetchData with params ${params.toString()}:`, error);
+/**
+ * Fetches the list of player names in a lobby.
+ * Returns a special signal if the game has started.
+ */
+export const getLobbyPlayers = async (gameCode: string): Promise<string[]> => {
+    const party = getParty(gameCode);
+    if (!party) {
+        // This can happen if polling starts before the player is registered.
+        // Returning an empty array is safe.
         return [];
     }
-}
+    if (party.started) {
+        return [GAME_START_SIGNAL];
+    }
+    return party.players.map(p => p.name);
+};
 
+/**
+ * Signals that the game should start for all players in the lobby.
+ */
+export const signalGameStart = async (gameCode: string): Promise<void> => {
+    // Simulate network delay
+    await new Promise(res => setTimeout(res, 300));
+    const party = getParty(gameCode);
+    if (!party) {
+        throw new Error('Party not found.');
+    }
+    party.started = true;
+    saveParty(gameCode, party);
+};
+
+/**
+ * Updates a player's score (time) for a given party.
+ */
+export const updateScore = async (partyCode: string, playerName: string, time: number): Promise<void> => {
+    const party = getParty(partyCode);
+    if (!party) {
+        console.error(`Party with code ${partyCode} not found for updating score.`);
+        return;
+    }
+    const player = party.players.find(p => p.name === playerName);
+    if (player) {
+        player.time = time;
+        saveParty(partyCode, party);
+    } else {
+        console.error(`Player ${playerName} not found in party ${partyCode} for updating score.`);
+    }
+};
+
+/**
+ * Gets all player scores for a specific party.
+ */
 export const getScores = async (gameCode: string): Promise<PlayerScore[]> => {
-    const params = new URLSearchParams();
-    params.append('action', 'getScores');
-    params.append('gaming', gameCode);
-    params.append('rsult', 'rsult');
-    params.append('_', new Date().getTime().toString());
-
-    const resultsList: ApiResponseScore[] = await fetchData(params);
-    if (Array.isArray(resultsList)) {
-      return resultsList
-        .filter((item) => String(item.gaming) === gameCode)
-        .filter((item) => item.score !== null && item.score !== '' && item.player_name !== GAME_START_SIGNAL)
-        .map((item): PlayerScore => ({
-          name: item.player_name,
-          time: parseScore(item.score),
-          place: item.place,
-        }));
-    }
-    return [];
+    const party = getParty(gameCode);
+    return party ? party.players : [];
 };
 
+/**
+ * Gets all player scores from all parties recorded.
+ */
 export const getAllScores = async (): Promise<PlayerScore[]> => {
-    const params = new URLSearchParams();
-    params.append('rsult', 'rsult');
-    params.append('_', new Date().getTime().toString());
+    const allScores: PlayerScore[] = [];
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('party-')) {
+            const partyCode = key.replace('party-', '');
+            const party = getParty(partyCode);
+            if (party) {
+                // Calculate ranks for finished players within this party
+                const finishedPlayers = party.players
+                    .filter(p => p.time !== Infinity)
+                    .sort((a, b) => a.time - b.time);
 
-    const resultsList = await fetchData(params);
-    if (Array.isArray(resultsList)) {
-      return resultsList
-        .filter((item: ApiResponseScore) => item.player_name && item.player_name !== GAME_START_SIGNAL)
-        .map((item: ApiResponseScore): PlayerScore => ({
-          gaming: item.gaming,
-          name: item.player_name,
-          time: parseScore(item.score),
-          place: item.place,
-        }));
-    }
-    return [];
-};
+                const rankedPlayers = finishedPlayers.map((player, index) => ({
+                    ...player,
+                    gaming: partyCode,
+                    place: (index + 1).toString(),
+                }));
 
-export const getLobbyPlayers = async (gameCode: string): Promise<string[]> => {
-    const params = new URLSearchParams();
-    params.append('action', 'getScores');
-    params.append('gaming', gameCode);
-    params.append('rsult', 'rsult');
-    params.append('_', new Date().getTime().toString());
-    
-    const resultsList: ApiResponseScore[] = await fetchData(params);
-    if (Array.isArray(resultsList)) {
-      return resultsList
-        .filter(item => String(item.gaming) === gameCode)
-        .map(item => item.player_name);
-    }
-    return [];
+                const unfinishedPlayers = party.players
+                    .filter(p => p.time === Infinity)
+                    .map(player => ({
+                        ...player,
+                        gaming: partyCode,
+                        place: '-',
+                    }));
+                
+                allScores.push(...rankedPlayers, ...unfinishedPlayers);
+            }
+        }
+    });
+
+    // Sort all records by game code, then by rank
+    allScores.sort((a, b) => {
+        const codeA = a.gaming?.toString() || '';
+        const codeB = b.gaming?.toString() || '';
+        if (codeA < codeB) return -1;
+        if (codeA > codeB) return 1;
+
+        const placeA = a.place === '-' ? Infinity : parseInt(a.place!, 10);
+        const placeB = b.place === '-' ? Infinity : parseInt(b.place!, 10);
+        return placeA - placeB;
+    });
+
+    return allScores;
 };

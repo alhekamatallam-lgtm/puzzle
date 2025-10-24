@@ -14,8 +14,8 @@ export const ModeSelectScreen: React.FC<ModeSelectScreenProps> = ({ onSelectMode
     <div className="w-full max-w-lg mx-auto p-6 sm:p-8 text-center">
       <div className="mx-auto mb-6 bg-white rounded-full p-3 w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center drop-shadow-[0_8px_16px_rgba(245,130,32,0.2)]">
         <img
-          src="https://sekaya.org.sa/wp-content/uploads/2024/01/99.png"
-          alt="شعار سكایا"
+          src="https://www.maathn.org.sa/rafed/uploads/website_partners/63184cff833ab.png"
+          alt="شعار"
           className="w-full h-auto"
         />
       </div>
