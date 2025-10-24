@@ -15,7 +15,7 @@ import { DatabaseViewScreen } from './components/DatabaseViewScreen';
 
 
 const SOLO_LEADERBOARD_KEY = 'soloLeaderboard';
-const NUM_PUZZLES = 5;
+const NUM_PUZZLES = 10;
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('mode-select');

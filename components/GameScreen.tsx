@@ -13,7 +13,7 @@ interface GameScreenProps {
   onGameOver: () => void;
 }
 
-const TOTAL_TIME = 120 * 1000; // 2 minutes for all puzzles
+const TOTAL_TIME = 240 * 1000; // 4 minutes for all puzzles
 
 const iconMap: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> } = {
   IdeaIcon,
@@ -153,7 +153,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
         <div className="text-base sm:text-xl font-bold text-slate-200">
           السؤال {currentPuzzleIndex + 1} / {puzzles.length}
         </div>
-        <div className={`flex items-center gap-2 text-xl sm:text-2xl font-bold ${timeRemaining < 10000 ? 'text-red-500' : 'text-orange-400'}`} style={{fontFamily: "'Orbitron', sans-serif"}}>
+        <div className={`flex items-center gap-2 text-xl sm:text-2xl font-bold ${timeRemaining < 30000 ? 'text-red-500' : 'text-orange-400'}`} style={{fontFamily: "'Orbitron', sans-serif"}}>
           <TimerIcon className="w-6 h-6" />
           {formatTime(timeRemaining)}
         </div>

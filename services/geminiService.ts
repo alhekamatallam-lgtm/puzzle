@@ -47,9 +47,10 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
     let prompt = `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`;
 
     if (!seed) {
-      // Add a random element only for solo games to ensure variety in every session.
-      const randomizer = `Random element for variety: ${Math.random()}`;
-      prompt = `${prompt} ${randomizer}`;
+      // Add random themes for solo games to ensure high variety in every session.
+      const themes = ['technology', 'marketing', 'customer service', 'product development', 'sustainability', 'finance', 'logistics', 'human resources'];
+      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+      prompt += ` Focus the puzzles on the theme of ${randomTheme}. Make them unique and different from previous sets. Unique identifier: ${Date.now()}`;
     }
 
     const response = await generativeAi.models.generateContent({
@@ -97,6 +98,11 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
         { type: 'ordering', title: 'مراحل التفكير التصميمي', shuffled: ['التعاطف', 'تحديد المشكلة', 'التفكير', 'النمذجة الأولية', 'الاختبار'].slice(0, 4).sort(() => Math.random() - 0.5), steps: ['التعاطف', 'تحديد المشكلة', 'التفكير', 'النمذجة الأولية', 'الاختبار'].slice(0, 4) },
         { type: 'visual', question: 'أي رمز يمثل "تحليل البيانات"؟', options: ['TargetIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'DataIcon' },
         { type: 'ordering', title: 'خطوات جلسة عصف ذهني فعالة', shuffled: ['تحديد الهدف', 'توليد الأفكار بحرية', 'مناقشة وتجميع الأفكار', 'تحديد أفضل الحلول'].sort(() => Math.random() - 0.5), steps: ['تحديد الهدف', 'توليد الأفكار بحرية', 'مناقشة وتجميع الأفكار', 'تحديد أفضل الحلول'] },
+        { type: 'ordering', title: 'خطوات بناء علامة تجارية قوية', shuffled: ['تحديد هوية العلامة', 'تصميم الشعار', 'بناء استراتيجية المحتوى', 'التفاعل مع الجمهور'].sort(() => Math.random() - 0.5), steps: ['تحديد هوية العلامة', 'تصميم الشعار', 'بناء استراتيجية المحتوى', 'التفاعل مع الجمهور'] },
+        { type: 'visual', question: 'أي رمز يمثل "الفكرة الجديدة"؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'IdeaIcon' },
+        { type: 'ordering', title: 'عملية حل المشكلات', shuffled: ['تحديد المشكلة', 'تحليل الأسباب', 'اقتراح الحلول', 'تنفيذ الحل وتقييمه'].sort(() => Math.random() - 0.5), steps: ['تحديد المشكلة', 'تحليل الأسباب', 'اقتراح الحلول', 'تنفيذ الحل وتقييمه'] },
+        { type: 'visual', question: 'أي رمز يمثل "العمل الجماعي"؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'CollaborationIcon' },
+        { type: 'visual', question: 'أي رمز يمثل "تحقيق الأهداف"؟', options: ['TargetIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'TargetIcon' },
     ];
     return mockPuzzles.slice(0, count);
   }
