@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { GameState, GameMode, Puzzle, PlayerScore } from './types';
 import { fetchPuzzles } from './services/geminiService';
-import { registerPlayer, updateScore } from './services/apiService';
+import { registerPlayer, updateScore, postScore, registerHost } from './services/apiService';
 import { ModeSelectScreen } from './components/ModeSelectScreen';
 import { StartScreen } from './components/StartScreen';
 import { GameScreen } from './components/GameScreen';
@@ -96,6 +96,9 @@ const App: React.FC = () => {
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     setPartyCode(code);
     try {
+      // Register host in the central database first.
+      await registerHost(name, code);
+      // Then register in local session for the lobby.
       await registerPlayer(code, name);
       // Use the party code as a seed for deterministic puzzles
       const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES, parseInt(code, 10));
@@ -131,10 +134,17 @@ const App: React.FC = () => {
 
   const handleGameFinish = (time: number) => {
     setPlayerTime(time);
+
+    // Post score to the central database ONLY for party mode
+    if (gameMode === 'party' && partyCode) {
+      postScore(playerName, time, partyCode);
+    }
+
     if (gameMode === 'solo') {
       updateLeaderboard(playerName, time);
       setGameState('finished');
     } else {
+      // Update local storage for live party results
       updateScore(partyCode, playerName, time);
       setGameState('party-results');
     }

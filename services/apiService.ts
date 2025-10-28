@@ -2,7 +2,7 @@ import type { PlayerScore } from '../types';
 
 const GAME_START_SIGNAL = '__GAME_START__';
 
-// --- LocalStorage-based Mock API Service ---
+// --- LocalStorage-based Mock API Service for active games ---
 
 // Helper to get a party from localStorage
 const getParty = (code: string): { players: PlayerScore[], started: boolean } | null => {
@@ -56,8 +56,6 @@ export const registerPlayer = async (code: string, name: string): Promise<void> 
 export const getLobbyPlayers = async (gameCode: string): Promise<string[]> => {
     const party = getParty(gameCode);
     if (!party) {
-        // This can happen if polling starts before the player is registered.
-        // Returning an empty array is safe.
         return [];
     }
     if (party.started) {
@@ -81,7 +79,7 @@ export const signalGameStart = async (gameCode: string): Promise<void> => {
 };
 
 /**
- * Updates a player's score (time) for a given party.
+ * Updates a player's score (time) for a given party in localStorage for live results.
  */
 export const updateScore = async (partyCode: string, playerName: string, time: number): Promise<void> => {
     const party = getParty(partyCode);
@@ -99,7 +97,7 @@ export const updateScore = async (partyCode: string, playerName: string, time: n
 };
 
 /**
- * Gets all player scores for a specific party.
+ * Gets all player scores for a specific party from localStorage.
  */
 export const getScores = async (gameCode: string): Promise<PlayerScore[]> => {
     const party = getParty(gameCode);
@@ -107,50 +105,141 @@ export const getScores = async (gameCode: string): Promise<PlayerScore[]> => {
 };
 
 /**
- * Gets all player scores from all parties recorded.
+ * Converts a time string in "mm:ss" format to milliseconds.
+ */
+const timeStringToMs = (timeStr: string): number => {
+    if (typeof timeStr !== 'string') return Infinity;
+    const parts = timeStr.split(':');
+    if (parts.length !== 2) return Infinity;
+
+    const minutes = parseInt(parts[0], 10);
+    const seconds = parseInt(parts[1], 10);
+
+    if (isNaN(minutes) || isNaN(seconds)) return Infinity;
+
+    return (minutes * 60 + seconds) * 1000;
+};
+
+// --- Remote Database Service ---
+const API_URL = 'https://script.google.com/macros/s/AKfycbx0ehoZBOxkowsB-vqJHkw-rnRc-86KPkYoRYSoAsDX-wRyrwB_Nj6HMyT4vBN0oHzr/exec';
+
+/**
+ * Gets all player scores from the remote Google Sheets database.
  */
 export const getAllScores = async (): Promise<PlayerScore[]> => {
-    const allScores: PlayerScore[] = [];
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('party-')) {
-            const partyCode = key.replace('party-', '');
-            const party = getParty(partyCode);
-            if (party) {
-                // Calculate ranks for finished players within this party
-                const finishedPlayers = party.players
-                    .filter(p => p.time !== Infinity)
-                    .sort((a, b) => a.time - b.time);
-
-                const rankedPlayers = finishedPlayers.map((player, index) => ({
-                    ...player,
-                    gaming: partyCode,
-                    place: (index + 1).toString(),
-                }));
-
-                const unfinishedPlayers = party.players
-                    .filter(p => p.time === Infinity)
-                    .map(player => ({
-                        ...player,
-                        gaming: partyCode,
-                        place: '-',
-                    }));
-                
-                allScores.push(...rankedPlayers, ...unfinishedPlayers);
-            }
+    try {
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+            throw new Error(`Network response was not ok: ${response.statusText}`);
         }
-    });
+        const apiResponse = await response.json();
 
-    // Sort all records by game code, then by rank
-    allScores.sort((a, b) => {
-        const codeA = a.gaming?.toString() || '';
-        const codeB = b.gaming?.toString() || '';
-        if (codeA < codeB) return -1;
-        if (codeA > codeB) return 1;
+        if (apiResponse.success && Array.isArray(apiResponse.data)) {
+            const mappedScores: PlayerScore[] = apiResponse.data.map((item: any) => ({
+                name: item.player_name,
+                time: timeStringToMs(item.score),
+                place: item.place,
+                gaming: item.gaming,
+            }));
+            return mappedScores;
+        } else {
+            console.error("API response format is incorrect.", apiResponse);
+            return [];
+        }
 
-        const placeA = a.place === '-' ? Infinity : parseInt(a.place!, 10);
-        const placeB = b.place === '-' ? Infinity : parseInt(b.place!, 10);
-        return placeA - placeB;
-    });
+    } catch (error) {
+        console.error("Failed to fetch scores from the remote database:", error);
+        return [];
+    }
+};
 
-    return allScores;
+/**
+ * Converts milliseconds to a "mm:ss" time string.
+ */
+const msToTimeString = (ms: number): string => {
+    if (ms === Infinity || isNaN(ms)) {
+        return 'N/A';
+    }
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+};
+
+/**
+ * Registers the host in the remote database when a party is created.
+ */
+export const registerHost = async (playerName: string, partyCode: string): Promise<void> => {
+    const payload: {
+        rsult: string;
+        player_name: string;
+        score: string;
+        gaming?: number;
+        place?: string;
+    } = {
+      rsult: "Scores",
+      player_name: playerName,
+      score: msToTimeString(Infinity), // "N/A"
+      place: "Host",
+    };
+
+    const parsedCode = parseInt(partyCode, 10);
+    if (!isNaN(parsedCode)) {
+        payload.gaming = parsedCode;
+    } else {
+         console.error("Invalid party code for host registration.");
+        return;
+    }
+
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+            mode: 'no-cors', // Use no-cors for this type of API endpoint
+        });
+        console.log('Host registration request sent.');
+    } catch (error) {
+        console.error("Error registering host to database:", error);
+    }
+};
+
+/**
+ * Posts a finished player score to the remote Google Sheets database.
+ */
+export const postScore = async (playerName: string, time: number, partyCode: string | null): Promise<void> => {
+    const payload: {
+        rsult: string;
+        player_name: string;
+        score: string;
+        gaming?: number;
+        place?: string; // place is optional
+    } = {
+      rsult: "Scores",
+      player_name: playerName,
+      score: msToTimeString(time),
+    };
+
+    if (partyCode) {
+        const parsedCode = parseInt(partyCode, 10);
+        if (!isNaN(parsedCode)) {
+            payload.gaming = parsedCode;
+        }
+    }
+
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+            mode: 'no-cors', // Use no-cors for this type of API endpoint
+        });
+       console.log('Score posted request sent successfully.');
+    } catch (error) {
+        console.error("Error posting score to database:", error);
+    }
 };
