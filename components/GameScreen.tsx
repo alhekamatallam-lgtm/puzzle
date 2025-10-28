@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Puzzle, OrderingPuzzle, VisualPuzzle } from '../types';
 import { TimerIcon } from './icons/TimerIcon';
@@ -11,7 +12,7 @@ import { SparklesIcon } from './icons/SparklesIcon';
 interface GameScreenProps {
   puzzles: Puzzle[];
   onGameFinish: (points: number, time: number) => void;
-  onGameOver: () => void;
+  onGameOver: (points: number) => void;
 }
 
 const TOTAL_TIME = 240 * 1000; // 4 minutes for all puzzles
@@ -30,6 +31,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_TIME);
   const [isWrong, setIsWrong] = useState(false);
   const [points, setPoints] = useState(0);
+  const pointsRef = useRef(points);
+  pointsRef.current = points;
 
   // State for Ordering Puzzle
   const [orderedSteps, setOrderedSteps] = useState<string[]>([]);
@@ -60,7 +63,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
       if (remaining <= 0) {
         setTimeRemaining(0);
         if (gameTimerRef.current) clearInterval(gameTimerRef.current);
-        onGameOver();
+        onGameOver(pointsRef.current);
       } else {
         setTimeRemaining(remaining);
       }
@@ -98,7 +101,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
   const handleSubmitOrder = () => {
     const correctOrder = (currentPuzzle as OrderingPuzzle).steps;
     if (JSON.stringify(orderedSteps) === JSON.stringify(correctOrder)) {
-      setPoints(prev => prev + 10);
+      setPoints(prev => prev + 100);
       goToNextPuzzle();
     } else {
       setIsWrong(true);
@@ -119,7 +122,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
     setIsCorrect(correct);
     
     if (correct) {
-      setPoints(prev => prev + 10);
+      setPoints(prev => prev + 100);
     }
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

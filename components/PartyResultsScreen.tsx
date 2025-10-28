@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { PlayerScore } from '../types';
 import { TrophyIcon } from './icons/TrophyIcon';
@@ -70,16 +71,17 @@ export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerNa
 
     // Sort the unique scores
     return uniqueScores.sort((a, b) => {
-        // Players who haven't finished yet go to the bottom.
-        if (a.time === Infinity && b.time !== Infinity) return 1;
-        if (a.time !== Infinity && b.time === Infinity) return -1;
-        
-        // Then, sort by points descending.
+        // 1. Primary sort: points descending. Higher score is always better.
         if (b.points !== a.points) {
           return b.points - a.points;
         }
         
-        // Finally, sort by time ascending as a tie-breaker.
+        // 2. Secondary sort (tie-breaker): time ascending.
+        // A player who finished (finite time) ranks higher than one who didn't (Infinity time).
+        if (a.time === Infinity && b.time !== Infinity) return 1; // b is better
+        if (a.time !== Infinity && b.time === Infinity) return -1; // a is better
+
+        // If both finished, lower time is better.
         return a.time - b.time;
     });
   }, [scores]);

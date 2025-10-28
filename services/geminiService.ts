@@ -44,21 +44,9 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
     const generativeAi = getAi();
     
     let prompt = `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`;
-
-    // Add themes for variety in both solo and party modes.
-    const themes = ['technology', 'marketing', 'customer service', 'product development', 'sustainability', 'finance', 'logistics', 'human resources', 'creative thinking', 'problem solving'];
-    let randomTheme: string;
-
-    if (seed) {
-      // Party mode: Use the seed for a deterministic theme selection
-      // This ensures all players in the same party get the same themed puzzles.
-      randomTheme = themes[seed % themes.length];
-    } else {
-      // Solo mode: Use Math.random() for a new theme every time.
-      randomTheme = themes[Math.floor(Math.random() * themes.length)];
-    }
     
-    prompt += ` Focus the puzzles on the theme of ${randomTheme}. Make them unique and different from previous sets.`;
+    // New instruction for diverse themes to make the game inclusive for all departments.
+    prompt += ` Ensure the puzzles are diverse and cover a wide range of corporate topics suitable for an innovative organization, including themes like technology, marketing, human resources, finance, logistics, and creative problem-solving. This will make the game feel comprehensive and inclusive for all departments. Make them unique and different from previous sets.`;
 
     // For solo mode, add an extra layer of randomness to prevent caching and ensure truly unique games.
     if (!seed) {
@@ -83,8 +71,8 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
           },
           required: ['puzzles']
         },
-        // The seed ensures that for a given party code (and the deterministically chosen theme),
-        // the generated puzzles are consistent for all players.
+        // The seed ensures that for a given party code,
+        // the generated set of diverse puzzles is consistent for all players.
         ...(seed && { seed }),
       },
     });

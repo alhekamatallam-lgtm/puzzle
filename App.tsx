@@ -16,7 +16,32 @@ import { DatabaseViewScreen } from './components/DatabaseViewScreen';
 
 
 const SOLO_LEADERBOARD_KEY = 'soloLeaderboard';
-const NUM_PUZZLES = 10;
+const NUM_PUZZLES = 15;
+
+/**
+ * Sorts puzzles by alternating between 'ordering' and 'visual' types.
+ * @param puzzles The array of puzzles to sort.
+ * @returns A new array with puzzles interleaved by type.
+ */
+const sortPuzzlesAlternating = (puzzles: Puzzle[]): Puzzle[] => {
+  const orderingPuzzles = puzzles.filter(p => p.type === 'ordering');
+  const visualPuzzles = puzzles.filter(p => p.type === 'visual');
+  const result: Puzzle[] = [];
+  const maxLength = Math.max(orderingPuzzles.length, visualPuzzles.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    if (orderingPuzzles[i]) {
+      result.push(orderingPuzzles[i]);
+    }
+    if (visualPuzzles[i]) {
+// FIX: Corrected typo from `visualPzzles` to `visualPuzzles`.
+      result.push(visualPuzzles[i]);
+    }
+  }
+
+  return result;
+};
+
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('mode-select');
@@ -93,7 +118,7 @@ const App: React.FC = () => {
     setPlayerName(name);
     try {
       const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES);
-      setPuzzles(fetchedPuzzles);
+      setPuzzles(sortPuzzlesAlternating(fetchedPuzzles));
       setGameState('playing');
     } catch (error) {
        alert(`فشل بدء اللعبة: ${(error as Error).message}`);
@@ -117,7 +142,7 @@ const App: React.FC = () => {
       await registerHost(name, code);
       // Use the party code as a seed for deterministic puzzles
       const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES, parseInt(code, 10));
-      setPuzzles(fetchedPuzzles);
+      setPuzzles(sortPuzzlesAlternating(fetchedPuzzles));
       setGameState('lobby');
     } catch (error) {
        alert(`فشل إنشاء الغرفة: ${(error as Error).message}`);
@@ -135,7 +160,7 @@ const App: React.FC = () => {
         await registerPlayer(code, name);
         setPartyCode(code);
         const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES, parseInt(code, 10));
-        setPuzzles(fetchedPuzzles);
+        setPuzzles(sortPuzzlesAlternating(fetchedPuzzles));
         setGameState('lobby');
     } catch (error) {
         alert(`فشل الانضمام: ${(error as Error).message}`);
@@ -166,6 +191,25 @@ const App: React.FC = () => {
       setGameState('party-results');
     }
   };
+  
+  const handleGameOver = (points: number) => {
+    setPlayerPoints(points);
+
+    // When time runs out, the player's attempt is over. We record their score.
+    // We use Infinity for time to indicate they did not finish within the limit.
+    // This is consistent with how new players are registered before they post a final time.
+    const finalTime = Infinity; 
+    setPlayerTime(finalTime);
+
+    // If in a party, post the final score and go to the live results screen.
+    if (gameMode === 'party' && partyCode) {
+      postScore(playerName, points, finalTime, partyCode);
+      setGameState('party-results');
+    } else {
+      // In solo mode, just show the standard 'Game Over' screen.
+      setGameState('gameOver');
+    }
+  };
 
   const renderGameState = () => {
     if (isLoading) {
@@ -190,13 +234,13 @@ const App: React.FC = () => {
       case 'lobby':
           return <PartyLobbyScreen gameCode={partyCode} isHost={isHost} onStart={handleStartPartyGame} />;
       case 'playing':
-        return <GameScreen puzzles={puzzles} onGameFinish={handleGameFinish} onGameOver={() => setGameState('gameOver')} />;
+        return <GameScreen puzzles={puzzles} onGameFinish={handleGameFinish} onGameOver={handleGameOver} />;
       case 'finished':
         return <LeaderboardScreen leaderboard={leaderboard} playerName={playerName} playerPoints={playerPoints} playerTime={playerTime} onPlayAgain={resetGame} gameMode={gameMode!} />;
       case 'party-results':
         return <PartyResultsScreen playerName={playerName} gameCode={partyCode} onPlayAgain={resetGame} />;
       case 'gameOver':
-        return <GameOverScreen onPlayAgain={resetGame} />;
+        return <GameOverScreen onPlayAgain={resetGame} playerPoints={playerPoints} />;
       case 'database-view':
         return <DatabaseViewScreen onBack={resetGame} />;
       default:

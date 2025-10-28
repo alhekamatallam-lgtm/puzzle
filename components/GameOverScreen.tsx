@@ -1,16 +1,31 @@
+
 import React from 'react';
 import { ReplayIcon } from './icons/ReplayIcon';
 import { TimeUpIcon } from './icons/TimeUpIcon';
 
 interface GameOverScreenProps {
     onPlayAgain: () => void;
+    playerPoints: number;
 }
 
-export const GameOverScreen: React.FC<GameOverScreenProps> = ({ onPlayAgain }) => {
+export const GameOverScreen: React.FC<GameOverScreenProps> = ({ onPlayAgain, playerPoints }) => {
     return (
         <div className="w-full max-w-md mx-auto p-6 sm:p-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700 text-center">
             <TimeUpIcon className="w-20 h-20 text-red-500 mx-auto mb-4" />
             <h1 className="text-3xl sm:text-4xl font-cairo-black text-slate-100 mb-2">انتهى الوقت!</h1>
+            
+            <div className="my-6">
+                <p className="text-slate-300 text-base sm:text-lg">
+                   لقد تمكنت من جمع:
+                </p>
+                <div 
+                    className="text-4xl sm:text-5xl font-bold my-2 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-sky-500" 
+                    style={{fontFamily: "'Orbitron', sans-serif"}}
+                >
+                    {playerPoints} نقطة
+                </div>
+            </div>
+
             <p className="text-slate-300 mb-8 text-base sm:text-lg">
                 حظاً أوفر في المرة القادمة. هل تريد المحاولة مرة أخرى؟
             </p>
