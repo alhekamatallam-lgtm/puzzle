@@ -36,7 +36,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
 
   // State for Ordering Puzzle
   const [orderedSteps, setOrderedSteps] = useState<string[]>([]);
-  
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   // State for Visual Puzzle
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -85,17 +86,54 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
     }
   };
 
-  // --- Ordering Puzzle Logic ---
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.dataTransfer.setData('draggedIndex', index.toString());
+  // --- Unified Drag & Drop Logic for Ordering Puzzle ---
+  const reorderItems = (startIndex: number, endIndex: number) => {
+    if (startIndex === endIndex) return;
+
+    const newSteps = [...orderedSteps];
+    const [draggedItem] = newSteps.splice(startIndex, 1);
+    newSteps.splice(endIndex, 0, draggedItem);
+    
+    setDraggedIndex(endIndex);
+    setOrderedSteps(newSteps);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
-    const draggedIndex = parseInt(e.dataTransfer.getData('draggedIndex'), 10);
-    const newSteps = [...orderedSteps];
-    const [draggedItem] = newSteps.splice(draggedIndex, 1);
-    newSteps.splice(dropIndex, 0, draggedItem);
-    setOrderedSteps(newSteps);
+  // Mouse Drag Events
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnter = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    reorderItems(draggedIndex, index);
+  };
+  
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+  
+  // Touch Events
+  const handleTouchStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (draggedIndex === null) return;
+    
+    // Prevent page scroll while dragging
+    e.preventDefault();
+
+    const touch = e.touches[0];
+    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+    const droppable = targetElement?.closest('[data-index]') as HTMLDivElement | null;
+
+    if (droppable) {
+        const overIndex = Number(droppable.dataset.index);
+        if (!isNaN(overIndex)) {
+            reorderItems(draggedIndex, overIndex);
+        }
+    }
   };
 
   const handleSubmitOrder = () => {
@@ -180,12 +218,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
           <div className="space-y-3">
             {orderedSteps.map((step, index) => (
               <div
-                key={index}
+                key={step}
+                data-index={index}
                 draggable
                 onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnter={() => handleDragEnter(index)}
+                onDragEnd={handleDragEnd}
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => handleDrop(e, index)}
-                className={`p-3 text-base sm:p-4 sm:text-lg rounded-lg text-white font-medium text-center cursor-grab active:cursor-grabbing bg-slate-700 flex items-center justify-center transition-transform duration-300 ${isWrong ? 'animate-shake bg-red-800/50' : ''}`}
+                onTouchStart={() => handleTouchStart(index)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleDragEnd}
+                className={`p-3 text-base sm:p-4 sm:text-lg rounded-lg text-white font-medium text-center cursor-grab active:cursor-grabbing bg-slate-700 flex items-center justify-center transition-all duration-200 ${isWrong ? 'animate-shake bg-red-800/50' : ''} ${draggedIndex === index ? 'is-dragging' : ''}`}
               >
                 {step}
               </div>
