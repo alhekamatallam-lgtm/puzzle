@@ -11,6 +11,10 @@ interface PartyResultsScreenProps {
   onPlayAgain: () => void;
 }
 
+// Define an augmented type for internal use to hold the role
+type ScoreWithRole = PlayerScore & { role?: string };
+
+
 export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerName, gameCode, onPlayAgain }) => {
   const [scores, setScores] = useState<PlayerScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,12 +39,48 @@ export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerNa
   }, [gameCode]);
 
 
-  const sortedScores = useMemo(() => {
-    return [...scores].sort((a, b) => {
-        if (b.points !== a.points) {
-          return b.points - a.points; // Higher points first
+  const sortedScores: ScoreWithRole[] = useMemo(() => {
+    const playerMap = new Map<string, ScoreWithRole>();
+
+    // Process scores to handle duplicates, keeping the one with the actual result.
+    scores.forEach(score => {
+      const existing = playerMap.get(score.name);
+      
+      // If the player isn't in the map, or if the new score is a final result (finite time)
+      // and the existing one was just an initial registration (infinite time), then we process it.
+      if (!existing || (score.time !== Infinity && existing.time === Infinity)) {
+        // Create a new score object to avoid mutating state directly
+        const finalScore: ScoreWithRole = { ...score };
+
+        // Preserve the 'Host' role from the initial registration record.
+        if ((existing && existing.place === 'Host') || score.place === 'Host') {
+            finalScore.role = 'Host';
         }
-        return a.time - b.time; // Lower time is better for tie-breaking
+        
+        // Clean up the 'place' field if it was used for a role, so it doesn't interfere with ranking display.
+        if (finalScore.place === 'Host' || finalScore.place === 'Player') {
+          finalScore.place = undefined;
+        }
+
+        playerMap.set(score.name, finalScore);
+      }
+    });
+
+    const uniqueScores = Array.from(playerMap.values());
+
+    // Sort the unique scores
+    return uniqueScores.sort((a, b) => {
+        // Players who haven't finished yet go to the bottom.
+        if (a.time === Infinity && b.time !== Infinity) return 1;
+        if (a.time !== Infinity && b.time === Infinity) return -1;
+        
+        // Then, sort by points descending.
+        if (b.points !== a.points) {
+          return b.points - a.points;
+        }
+        
+        // Finally, sort by time ascending as a tie-breaker.
+        return a.time - b.time;
     });
   }, [scores]);
 
@@ -81,20 +121,24 @@ export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerNa
         ) : scores.length > 0 ? (
             <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
             {sortedScores.map((score, index) => {
-                const isWinner = index === 0 && !isLoading;
+                const rank = index + 1;
+                const isWinner = rank === 1 && !isLoading && score.time !== Infinity;
                 const rowClasses = `flex justify-between items-center p-3 rounded-lg opacity-0 animate-fade-in-up ${score.name === playerName ? 'bg-teal-600/50 border-teal-500 border' : 'bg-slate-700/50'} ${isWinner ? 'shadow-[0_0_15px_rgba(251,191,36,0.4)] border border-amber-400/50' : ''}`;
                 return (
                     <div 
-                        key={index} 
+                        key={score.name} 
                         className={rowClasses}
                         style={{ animationDelay: `${index * 100}ms` }}
                     >
                         <div className="flex items-center gap-4">
-                            <div className={`w-10 text-center text-lg font-bold flex items-center justify-center gap-1.5 ${getRankColor(index + 1)}`}>
+                            <div className={`w-10 text-center text-lg font-bold flex items-center justify-center gap-1.5 ${getRankColor(rank)}`}>
                                 {isWinner && <TrophyIcon className="w-5 h-5" />}
-                                <span>{score.place || index + 1}</span>
+                                <span>{rank}</span>
                             </div>
-                            <span className="text-lg font-medium text-slate-100">{score.name}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg font-medium text-slate-100">{score.name}</span>
+                                {score.role === 'Host' && <span className="text-xs font-bold text-amber-400 bg-amber-400/20 px-2 py-0.5 rounded-full">المضيف</span>}
+                            </div>
                         </div>
                         <div className="flex items-center gap-3 text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif" }}>
                           <span className="text-teal-400 w-20 text-right">{score.points} pts</span>
