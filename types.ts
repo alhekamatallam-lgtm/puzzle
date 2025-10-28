@@ -20,6 +20,7 @@ export type Puzzle = OrderingPuzzle | VisualPuzzle;
 
 export interface PlayerScore {
   name: string;
+  points: number;
   time: number;
   place?: string;
   gaming?: string | number;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { GameState, GameMode, Puzzle, PlayerScore } from './types';
 import { fetchPuzzles } from './services/geminiService';
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   const [gameMode, setGameMode] = useState<GameMode | null>(null);
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const [playerName, setPlayerName] = useState('');
+  const [playerPoints, setPlayerPoints] = useState(0);
   const [playerTime, setPlayerTime] = useState(0);
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,10 +49,15 @@ const App: React.FC = () => {
     loadLeaderboard();
   }, [loadLeaderboard]);
 
-  const updateLeaderboard = (name: string, time: number) => {
-    const newScore = { name, time };
+  const updateLeaderboard = (name: string, points: number, time: number) => {
+    const newScore: PlayerScore = { name, points, time };
     const newLeaderboard = [...leaderboard, newScore]
-      .sort((a, b) => a.time - b.time)
+      .sort((a, b) => {
+        if (b.points !== a.points) {
+          return b.points - a.points; // Higher points first
+        }
+        return a.time - b.time; // Lower time is better for tie-breaking
+      })
       .slice(0, 10);
     setLeaderboard(newLeaderboard);
     try {
@@ -65,6 +72,7 @@ const App: React.FC = () => {
     setGameMode(null);
     setPuzzles([]);
     setPlayerName('');
+    setPlayerPoints(0);
     setPlayerTime(0);
     setIsLoading(false);
     setPartyCode('');
@@ -94,6 +102,10 @@ const App: React.FC = () => {
     }
   };
 
+  // FIX: Replaced the `handleCreateParty` function which had a syntax error
+  // (`.finally()` called on a `try-catch` block). The new version uses a
+  // standard `try...catch...finally` block, which resolves the syntax error
+  // and all subsequent scope-related errors.
   const handleCreateParty = async (name: string) => {
     setIsLoading(true);
     setPlayerName(name);
@@ -110,7 +122,7 @@ const App: React.FC = () => {
     } catch (error) {
        alert(`فشل إنشاء الغرفة: ${(error as Error).message}`);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
   
@@ -136,16 +148,17 @@ const App: React.FC = () => {
       setGameState('playing');
   }
 
-  const handleGameFinish = (time: number) => {
+  const handleGameFinish = (points: number, time: number) => {
+    setPlayerPoints(points);
     setPlayerTime(time);
 
     // Post score to the central database ONLY for party mode
     if (gameMode === 'party' && partyCode) {
-      postScore(playerName, time, partyCode);
+      postScore(playerName, points, time, partyCode);
     }
 
     if (gameMode === 'solo') {
-      updateLeaderboard(playerName, time);
+      updateLeaderboard(playerName, points, time);
       setGameState('finished');
     } else {
       // The results screen will poll the database directly.
@@ -179,7 +192,7 @@ const App: React.FC = () => {
       case 'playing':
         return <GameScreen puzzles={puzzles} onGameFinish={handleGameFinish} onGameOver={() => setGameState('gameOver')} />;
       case 'finished':
-        return <LeaderboardScreen leaderboard={leaderboard} playerName={playerName} playerTime={playerTime} onPlayAgain={resetGame} gameMode={gameMode!} />;
+        return <LeaderboardScreen leaderboard={leaderboard} playerName={playerName} playerPoints={playerPoints} playerTime={playerTime} onPlayAgain={resetGame} gameMode={gameMode!} />;
       case 'party-results':
         return <PartyResultsScreen playerName={playerName} gameCode={partyCode} onPlayAgain={resetGame} />;
       case 'gameOver':

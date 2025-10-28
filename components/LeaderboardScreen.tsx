@@ -6,12 +6,13 @@ import { ReplayIcon } from './icons/ReplayIcon';
 interface LeaderboardScreenProps {
   leaderboard: PlayerScore[];
   playerName: string;
+  playerPoints: number;
   playerTime: number;
   onPlayAgain: () => void;
   gameMode: GameMode;
 }
 
-export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, playerName, playerTime, onPlayAgain, gameMode }) => {
+export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboard, playerName, playerPoints, playerTime, onPlayAgain, gameMode }) => {
   const [copied, setCopied] = useState(false);
 
   const formatTime = (ms: number) => {
@@ -32,7 +33,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboar
   
   const handleShareScore = () => {
       const timeString = formatTime(playerTime);
-      const textToCopy = `أنهيت تحدي الألغاز في ${timeString} ! 🎉 - ${playerName}`;
+      const textToCopy = `حصلت على ${playerPoints} نقطة في تحدي الألغاز بوقت ${timeString}! 🎉 - ${playerName}`;
       navigator.clipboard.writeText(textToCopy).then(() => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -44,11 +45,13 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboar
       <div className="text-center mb-8">
         <h1 className="text-2xl sm:text-3xl font-cairo-black text-slate-100">اكتمل التحدي!</h1>
         <p className="text-slate-300 mt-2 text-base sm:text-lg">
-          عمل رائع، <span className="font-bold text-orange-400">{playerName}</span>! وقتك النهائي هو:
+          عمل رائع، <span className="font-bold text-orange-400">{playerName}</span>! نتيجتك النهائية هي:
         </p>
-        <p className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-teal-500 my-4" style={{fontFamily: "'Orbitron', sans-serif"}}>
-          {formatTime(playerTime)}
-        </p>
+        <div className="text-4xl sm:text-5xl font-bold my-4 flex justify-center items-center gap-4" style={{fontFamily: "'Orbitron', sans-serif"}}>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-sky-500">{playerPoints} نقطة</span>
+          <span className="text-slate-500 text-3xl">|</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-500">{formatTime(playerTime)}</span>
+        </div>
       </div>
 
       {gameMode === 'solo' && (
@@ -64,7 +67,10 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ leaderboar
                             <span className={`w-8 text-center text-lg sm:text-xl font-bold ${getRankColor(index + 1)}`}>{index + 1}</span>
                             <span className="text-base sm:text-lg font-medium text-slate-100">{score.name}</span>
                         </div>
-                        <span className="text-base sm:text-lg font-bold text-slate-300" style={{fontFamily: "'Orbitron', sans-serif"}}>{formatTime(score.time)}</span>
+                        <div className="flex items-center gap-3 text-base sm:text-lg font-bold" style={{fontFamily: "'Orbitron', sans-serif"}}>
+                          <span className="text-teal-400">{score.points} pts</span>
+                          <span className="text-slate-300">{formatTime(score.time)}</span>
+                        </div>
                     </div>
                 ))}
             </div>

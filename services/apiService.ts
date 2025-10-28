@@ -77,6 +77,7 @@ export const getAllScores = async (): Promise<PlayerScore[]> => {
         if (apiResponse.success && Array.isArray(apiResponse.data)) {
             const mappedScores: PlayerScore[] = apiResponse.data.map((item: any) => ({
                 name: item.player_name,
+                points: typeof item.points === 'number' ? item.points : 0,
                 time: timeStringToMs(item.score),
                 place: item.place,
                 gaming: item.gaming,
@@ -101,6 +102,7 @@ export const registerPlayer = async (code: string, name: string): Promise<void> 
       rsult: "Scores",
       player_name: name,
       score: msToTimeString(Infinity), // Initial 'N/A' score
+      points: 0,
       gaming: parseInt(code, 10),
       place: "Player",
     };
@@ -116,6 +118,7 @@ export const registerHost = async (playerName: string, partyCode: string): Promi
       rsult: "Scores",
       player_name: playerName,
       score: msToTimeString(Infinity), // Initial 'N/A' score
+      points: 0,
       gaming: parseInt(partyCode, 10),
       place: "Host",
     };
@@ -152,6 +155,7 @@ export const signalGameStart = async (gameCode: string): Promise<void> => {
       rsult: "Scores",
       player_name: GAME_START_SIGNAL,
       score: msToTimeString(Infinity),
+      points: -1,
       gaming: parseInt(gameCode, 10),
     };
     await postToSheet(payload);
@@ -161,13 +165,14 @@ export const signalGameStart = async (gameCode: string): Promise<void> => {
 /**
  * Posts a finished player's final score to the remote Google Sheets database.
  */
-export const postScore = async (playerName: string, time: number, partyCode: string | null): Promise<void> => {
+export const postScore = async (playerName: string, points: number, time: number, partyCode: string | null): Promise<void> => {
      if (!partyCode) return; // Only post scores for party mode
 
     const payload = {
       rsult: "Scores",
       player_name: playerName,
       score: msToTimeString(time),
+      points: points,
       gaming: parseInt(partyCode, 10),
       // 'place' will be determined later or can be omitted for regular player score updates
     };
@@ -180,11 +185,21 @@ export const postScore = async (playerName: string, time: number, partyCode: str
  */
 export const getScores = async (gameCode: string): Promise<PlayerScore[]> => {
     const allScores = await getAllScores();
-    // Filter for the specific game, excluding the start signal record
-    return allScores.filter(score => 
-        score.gaming?.toString() === gameCode && 
-        score.name !== GAME_START_SIGNAL
-    );
+
+    // Explicitly filter to get scores only for the current game room.
+    const partyScores = allScores.filter(score => {
+        // Ensure we have a valid gaming code to compare.
+        if (score.gaming === undefined || score.gaming === null) {
+            return false;
+        }
+        // Compare the game code from the database with the current party code.
+        return score.gaming.toString() === gameCode;
+    });
+
+    // Also, filter out any special system records like the game start signal.
+    const finalScores = partyScores.filter(score => score.name !== GAME_START_SIGNAL);
+
+    return finalScores;
 };
 
 // Obsolete localStorage functions for multiplayer have been removed.

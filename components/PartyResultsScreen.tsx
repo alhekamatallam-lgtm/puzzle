@@ -36,7 +36,12 @@ export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerNa
 
 
   const sortedScores = useMemo(() => {
-    return [...scores].sort((a, b) => a.time - b.time);
+    return [...scores].sort((a, b) => {
+        if (b.points !== a.points) {
+          return b.points - a.points; // Higher points first
+        }
+        return a.time - b.time; // Lower time is better for tie-breaking
+    });
   }, [scores]);
 
   const formatTime = (ms: number) => {
@@ -75,15 +80,29 @@ export const PartyResultsScreen: React.FC<PartyResultsScreenProps> = ({ playerNa
             </div>
         ) : scores.length > 0 ? (
             <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-            {sortedScores.map((score, index) => (
-                <div key={index} className={`flex justify-between items-center p-3 rounded-lg ${score.name === playerName ? 'bg-teal-600/50 border-teal-500 border' : 'bg-slate-700/50'}`}>
-                <div className="flex items-center gap-4">
-                    <span className={`w-12 text-center text-lg font-bold ${getRankColor(index + 1)}`}>{score.place || index + 1}</span>
-                    <span className="text-lg font-medium text-slate-100">{score.name}</span>
-                </div>
-                <span className="text-lg font-bold text-slate-300" style={{ fontFamily: "'Orbitron', sans-serif" }}>{formatTime(score.time)}</span>
-                </div>
-            ))}
+            {sortedScores.map((score, index) => {
+                const isWinner = index === 0 && !isLoading;
+                const rowClasses = `flex justify-between items-center p-3 rounded-lg opacity-0 animate-fade-in-up ${score.name === playerName ? 'bg-teal-600/50 border-teal-500 border' : 'bg-slate-700/50'} ${isWinner ? 'shadow-[0_0_15px_rgba(251,191,36,0.4)] border border-amber-400/50' : ''}`;
+                return (
+                    <div 
+                        key={index} 
+                        className={rowClasses}
+                        style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`w-10 text-center text-lg font-bold flex items-center justify-center gap-1.5 ${getRankColor(index + 1)}`}>
+                                {isWinner && <TrophyIcon className="w-5 h-5" />}
+                                <span>{score.place || index + 1}</span>
+                            </div>
+                            <span className="text-lg font-medium text-slate-100">{score.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                          <span className="text-teal-400 w-20 text-right">{score.points} pts</span>
+                          <span className="text-slate-300 w-24 text-right">{formatTime(score.time)}</span>
+                        </div>
+                    </div>
+                );
+            })}
             </div>
         ) : (
             <p className="text-center text-slate-400 pt-8">في انتظار انتهاء بقية اللاعبين...</p>

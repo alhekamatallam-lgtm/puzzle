@@ -17,6 +17,14 @@ export const DatabaseViewScreen: React.FC<DatabaseViewScreenProps> = ({ onBack }
     const fetchRecords = async () => {
       try {
         const fetchedRecords = await getAllScores();
+        // Sort by game code descending, then points descending, then time ascending
+        fetchedRecords.sort((a, b) => {
+            const gameCodeA = typeof a.gaming === 'number' ? a.gaming : 0;
+            const gameCodeB = typeof b.gaming === 'number' ? b.gaming : 0;
+            if (gameCodeB !== gameCodeA) return gameCodeB - gameCodeA;
+            if (b.points !== a.points) return b.points - a.points;
+            return a.time - b.time;
+        });
         setRecords(fetchedRecords);
       } catch (error) {
         console.error("Failed to fetch database records:", error);
@@ -57,6 +65,7 @@ export const DatabaseViewScreen: React.FC<DatabaseViewScreenProps> = ({ onBack }
               <tr>
                 <th scope="col" className="px-6 py-3">رمز الغرفة</th>
                 <th scope="col" className="px-6 py-3">اسم اللاعب</th>
+                <th scope="col" className="px-6 py-3">النقاط</th>
                 <th scope="col" className="px-6 py-3">الوقت</th>
                 <th scope="col" className="px-6 py-3">المركز</th>
               </tr>
@@ -67,13 +76,14 @@ export const DatabaseViewScreen: React.FC<DatabaseViewScreenProps> = ({ onBack }
                   <tr key={index} className="border-b border-slate-700 hover:bg-slate-700/30">
                     <td className="px-6 py-4 font-mono text-orange-400">{record.gaming || '-'}</td>
                     <td className="px-6 py-4 font-medium text-white whitespace-nowrap">{record.name}</td>
+                    <td className="px-6 py-4 font-bold text-teal-400">{record.points}</td>
                     <td className="px-6 py-4 font-mono">{formatTime(record.time)}</td>
                     <td className="px-6 py-4">{record.place || '-'}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-center py-10 text-slate-400">لم يتم العثور على سجلات.</td>
+                  <td colSpan={5} className="text-center py-10 text-slate-400">لم يتم العثور على سجلات.</td>
                 </tr>
               )}
             </tbody>

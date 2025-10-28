@@ -6,10 +6,11 @@ import { GrowthIcon } from './icons/GrowthIcon';
 import { CollaborationIcon } from './icons/CollaborationIcon';
 import { DataIcon } from './icons/DataIcon';
 import { TargetIcon } from './icons/TargetIcon';
+import { SparklesIcon } from './icons/SparklesIcon';
 
 interface GameScreenProps {
   puzzles: Puzzle[];
-  onGameFinish: (time: number) => void;
+  onGameFinish: (points: number, time: number) => void;
   onGameOver: () => void;
 }
 
@@ -28,6 +29,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
   const [startTime] = useState(Date.now());
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_TIME);
   const [isWrong, setIsWrong] = useState(false);
+  const [points, setPoints] = useState(0);
 
   // State for Ordering Puzzle
   const [orderedSteps, setOrderedSteps] = useState<string[]>([]);
@@ -76,7 +78,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
       setIsWrong(false);
     } else {
       const endTime = Date.now();
-      onGameFinish(endTime - startTime);
+      onGameFinish(points, endTime - startTime);
     }
   };
 
@@ -96,11 +98,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
   const handleSubmitOrder = () => {
     const correctOrder = (currentPuzzle as OrderingPuzzle).steps;
     if (JSON.stringify(orderedSteps) === JSON.stringify(correctOrder)) {
+      setPoints(prev => prev + 10);
       goToNextPuzzle();
     } else {
       setIsWrong(true);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = window.setTimeout(() => setIsWrong(false), 500);
+      timeoutRef.current = window.setTimeout(() => {
+        goToNextPuzzle(); // Move on even if wrong
+      }, 1000);
     }
   };
   
@@ -112,15 +117,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
     setSelectedIcon(iconName);
     const correct = iconName === puzzle.answer;
     setIsCorrect(correct);
+    
+    if (correct) {
+      setPoints(prev => prev + 10);
+    }
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    // Move to next puzzle regardless of answer after a short delay
     timeoutRef.current = window.setTimeout(() => {
-      if (correct) {
-        goToNextPuzzle();
-      } else {
-        setSelectedIcon(null);
-        setIsCorrect(null);
-      }
+      goToNextPuzzle();
     }, 1000);
   };
 
@@ -129,7 +134,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
     if (iconName === selectedIcon) {
         return isCorrect ? 'bg-green-500 scale-110' : 'bg-red-500 animate-shake';
     }
-    if (iconName === (currentPuzzle as VisualPuzzle).answer) {
+    // Reveal correct answer if user was wrong
+    if (iconName === (currentPuzzle as VisualPuzzle).answer && !isCorrect) {
         return 'bg-green-500';
     }
     return 'bg-slate-700 opacity-50';
@@ -153,6 +159,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
         <div className="text-base sm:text-xl font-bold text-slate-200">
           السؤال {currentPuzzleIndex + 1} / {puzzles.length}
         </div>
+         <div className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-teal-400">
+          <SparklesIcon className="w-6 h-6" />
+          {points}
+        </div>
         <div className={`flex items-center gap-2 text-xl sm:text-2xl font-bold ${timeRemaining < 30000 ? 'text-red-500' : 'text-orange-400'}`} style={{fontFamily: "'Orbitron', sans-serif"}}>
           <TimerIcon className="w-6 h-6" />
           {formatTime(timeRemaining)}
@@ -172,14 +182,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ puzzles, onGameFinish, o
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, index)}
-                className={`p-3 text-base sm:p-4 sm:text-lg rounded-lg text-white font-medium text-center cursor-grab active:cursor-grabbing bg-slate-700 flex items-center justify-center transition-transform duration-300 ${isWrong ? 'animate-shake' : ''}`}
+                className={`p-3 text-base sm:p-4 sm:text-lg rounded-lg text-white font-medium text-center cursor-grab active:cursor-grabbing bg-slate-700 flex items-center justify-center transition-transform duration-300 ${isWrong ? 'animate-shake bg-red-800/50' : ''}`}
               >
                 {step}
               </div>
             ))}
           </div>
           <button onClick={handleSubmitOrder} className="mt-8 w-full text-white bg-orange-600 hover:bg-orange-700 font-bold rounded-lg text-lg px-5 py-3 text-center">
-            تحقق من الترتيب
+            تأكيد الترتيب
           </button>
         </div>
       )}
