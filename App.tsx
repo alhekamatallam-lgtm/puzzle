@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { GameState, GameMode, Puzzle, PlayerScore } from './types';
 import { fetchPuzzles } from './services/geminiService';
@@ -249,15 +250,26 @@ const App: React.FC = () => {
   };
 
   return (
-    <div 
-        className="min-h-screen text-white font-cairo-regular flex flex-col items-center justify-center p-4 sm:p-6" 
-        dir="rtl"
-        style={{ background: 'radial-gradient(ellipse at center, #113054 0%, #0A192F 80%)' }}
+    <div
+      className="min-h-screen text-white font-cairo-regular flex flex-col items-center justify-start p-4 sm:p-6 pt-40 sm:pt-48"
+      dir="rtl"
+      style={{ background: 'radial-gradient(ellipse at center, #113054 0%, #0A192F 80%)' }}
     >
-      <div 
-        className="absolute top-0 left-0 w-full h-full bg-no-repeat bg-center" 
-        style={{backgroundImage: "url('https://res.cloudinary.com/pro-com/image/upload/v1634571932/bg-star_o5ikcu.png')", opacity: 0.3}}
+      <div
+        className="absolute top-0 left-0 w-full h-full bg-no-repeat bg-center"
+        style={{ backgroundImage: "url('https://res.cloudinary.com/pro-com/image/upload/v1634571932/bg-star_o5ikcu.png')", opacity: 0.3 }}
       ></div>
+      
+      <header className="absolute top-6 sm:top-8 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-white rounded-full p-3 w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center drop-shadow-[0_8px_16px_rgba(245,130,32,0.2)]">
+              <img
+                  src="https://www.maathn.org.sa/rafed/uploads/website_partners/63184cff833ab.png"
+                  alt="شعار"
+                  className="w-full h-auto"
+              />
+          </div>
+      </header>
+
       <main className="z-10 w-full">
         {renderGameState()}
       </main>
