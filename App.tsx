@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { GameState, GameMode, Puzzle, PlayerScore } from './types';
 import { fetchPuzzles } from './services/geminiService';
-import { registerPlayer, updateScore, postScore, registerHost } from './services/apiService';
+import { registerPlayer, postScore, registerHost } from './services/apiService';
 import { ModeSelectScreen } from './components/ModeSelectScreen';
 import { StartScreen } from './components/StartScreen';
 import { GameScreen } from './components/GameScreen';
@@ -83,10 +83,15 @@ const App: React.FC = () => {
   const handleStartSoloGame = async (name: string) => {
     setIsLoading(true);
     setPlayerName(name);
-    const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES);
-    setPuzzles(fetchedPuzzles);
-    setIsLoading(false);
-    setGameState('playing');
+    try {
+      const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES);
+      setPuzzles(fetchedPuzzles);
+      setGameState('playing');
+    } catch (error) {
+       alert(`فشل بدء اللعبة: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateParty = async (name: string) => {
@@ -96,10 +101,8 @@ const App: React.FC = () => {
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     setPartyCode(code);
     try {
-      // Register host in the central database first.
+      // Register host in the central database. The lobby will pick up this record.
       await registerHost(name, code);
-      // Then register in local session for the lobby.
-      await registerPlayer(code, name);
       // Use the party code as a seed for deterministic puzzles
       const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES, parseInt(code, 10));
       setPuzzles(fetchedPuzzles);
@@ -116,6 +119,7 @@ const App: React.FC = () => {
     setPlayerName(name);
     setIsHost(false);
     try {
+        // Register the joining player in the central database.
         await registerPlayer(code, name);
         setPartyCode(code);
         const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES, parseInt(code, 10));
@@ -144,8 +148,8 @@ const App: React.FC = () => {
       updateLeaderboard(playerName, time);
       setGameState('finished');
     } else {
-      // Update local storage for live party results
-      updateScore(partyCode, playerName, time);
+      // The results screen will poll the database directly.
+      // No need to update local storage for party results anymore.
       setGameState('party-results');
     }
   };
