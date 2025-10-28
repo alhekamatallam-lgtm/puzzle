@@ -19,31 +19,6 @@ import { DatabaseViewScreen } from './components/DatabaseViewScreen';
 const SOLO_LEADERBOARD_KEY = 'soloLeaderboard';
 const NUM_PUZZLES = 15;
 
-/**
- * Sorts puzzles by alternating between 'ordering' and 'visual' types.
- * @param puzzles The array of puzzles to sort.
- * @returns A new array with puzzles interleaved by type.
- */
-const sortPuzzlesAlternating = (puzzles: Puzzle[]): Puzzle[] => {
-  const orderingPuzzles = puzzles.filter(p => p.type === 'ordering');
-  const visualPuzzles = puzzles.filter(p => p.type === 'visual');
-  const result: Puzzle[] = [];
-  const maxLength = Math.max(orderingPuzzles.length, visualPuzzles.length);
-
-  for (let i = 0; i < maxLength; i++) {
-    if (orderingPuzzles[i]) {
-      result.push(orderingPuzzles[i]);
-    }
-    if (visualPuzzles[i]) {
-// FIX: Corrected typo from `visualPzzles` to `visualPuzzles`.
-      result.push(visualPuzzles[i]);
-    }
-  }
-
-  return result;
-};
-
-
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('mode-select');
   const [gameMode, setGameMode] = useState<GameMode | null>(null);
@@ -119,7 +94,7 @@ const App: React.FC = () => {
     setPlayerName(name);
     try {
       const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES);
-      setPuzzles(sortPuzzlesAlternating(fetchedPuzzles));
+      setPuzzles(fetchedPuzzles);
       setGameState('playing');
     } catch (error) {
        alert(`فشل بدء اللعبة: ${(error as Error).message}`);
@@ -143,7 +118,7 @@ const App: React.FC = () => {
       await registerHost(name, code);
       // Use the party code as a seed for deterministic puzzles
       const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES, parseInt(code, 10));
-      setPuzzles(sortPuzzlesAlternating(fetchedPuzzles));
+      setPuzzles(fetchedPuzzles);
       setGameState('lobby');
     } catch (error) {
        alert(`فشل إنشاء الغرفة: ${(error as Error).message}`);
@@ -161,7 +136,7 @@ const App: React.FC = () => {
         await registerPlayer(code, name);
         setPartyCode(code);
         const fetchedPuzzles = await fetchPuzzles(NUM_PUZZLES, parseInt(code, 10));
-        setPuzzles(sortPuzzlesAlternating(fetchedPuzzles));
+        setPuzzles(fetchedPuzzles);
         setGameState('lobby');
     } catch (error) {
         alert(`فشل الانضمام: ${(error as Error).message}`);

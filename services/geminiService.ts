@@ -2,6 +2,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { Puzzle, OrderingPuzzle, VisualPuzzle } from '../types';
 
 let ai: GoogleGenAI | null = null;
+// Generate a large pool of puzzles to select from, reducing repetition.
+const PUZZLE_POOL_SIZE = 100;
 
 const getAi = (): GoogleGenAI => {
   if (!ai) {
@@ -39,14 +41,73 @@ const visualPuzzleSchema = {
   required: ['type', 'question', 'options', 'answer'],
 };
 
+/**
+ * Creates a simple seeded pseudo-random number generator (LCG).
+ * @param seed The seed for the random number generator.
+ * @returns A function that returns the next random number in the sequence.
+ */
+function createSeededRandom(seed: number) {
+    let state = seed;
+    // LCG parameters
+    const a = 1664525;
+    const c = 1013904223;
+    const m = 2**32;
+    return function() {
+        state = (a * state + c) % m;
+        return state / m;
+    };
+}
+
+/**
+ * Shuffles an array using the Fisher-Yates algorithm.
+ * Can be seeded for deterministic results, which is crucial for party mode.
+ * @param array The array to shuffle.
+ * @param seed An optional seed for deterministic shuffling.
+ * @returns A new shuffled array.
+ */
+const shuffleArray = <T>(array: T[], seed?: number): T[] => {
+    const shuffled = [...array];
+    const random = seed !== undefined ? createSeededRandom(seed) : Math.random;
+    let currentIndex = shuffled.length;
+    let randomIndex;
+
+    // While there remain elements to shuffle.
+    while (currentIndex !== 0) {
+        // Pick a remaining element.
+        randomIndex = Math.floor(random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [shuffled[currentIndex], shuffled[randomIndex]] = [
+            shuffled[randomIndex], shuffled[currentIndex]];
+    }
+
+    return shuffled;
+}
+
+
 export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle[]> => {
   try {
     const generativeAi = getAi();
     
-    let prompt = `Generate ${count} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`;
+    // The prompt now requests a larger pool of puzzles to ensure variety.
+    let prompt = `Generate ${PUZZLE_POOL_SIZE} innovative puzzles in Arabic for a corporate innovation challenge. Provide a mix of 'ordering' and 'visual' puzzle types. 'Ordering' puzzles should be about creative or business processes. 'Visual' puzzles should be about innovation concepts represented by icons.`;
     
-    // New instruction for diverse themes to make the game inclusive for all departments.
-    prompt += ` Ensure the puzzles are diverse and cover a wide range of corporate topics suitable for an innovative organization, including themes like technology, marketing, human resources, finance, logistics, and creative problem-solving. This will make the game feel comprehensive and inclusive for all departments. Make them unique and different from previous sets.`;
+    const departments = [
+        'الادارة التنفيذية',
+        'المالية',
+        'الموارد البشرية',
+        'التميز المؤسسي',
+        'المساجد',
+        'المشاريع',
+        'الدراسات والابتكار',
+        'الاتصال المؤسسي',
+        'تقنية المعلومات',
+        'الجودة والتقييم'
+    ].join(', ');
+
+    prompt += ` The puzzles must be highly diverse and cover topics from the various departments within our organization. This is crucial to make the game feel inclusive and relevant to everyone. Generate questions related to the following departments: ${departments}. For example, a finance question could be about budget steps, an HR question about the hiring process, and an IT question about cybersecurity best practices. Make the questions unique and avoid repetition between game sessions.`;
+
 
     // For solo mode, add an extra layer of randomness to prevent caching and ensure truly unique games.
     if (!seed) {
@@ -63,7 +124,7 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
           properties: {
             puzzles: {
               type: Type.ARRAY,
-              description: `An array of exactly ${count} puzzle objects.`,
+              description: `An array of exactly ${PUZZLE_POOL_SIZE} puzzle objects.`,
               items: {
                 oneOf: [orderingPuzzleSchema, visualPuzzleSchema]
               }
@@ -81,13 +142,21 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
     const parsed = JSON.parse(jsonString);
 
     if (parsed.puzzles && Array.isArray(parsed.puzzles) && parsed.puzzles.length > 0) {
-      const puzzles: Puzzle[] = parsed.puzzles.map((p: any) => {
+      // Shuffle the entire pool of puzzles. The shuffle is seeded for party mode
+      // to ensure all players get the same random subset of questions.
+      const allPuzzles = shuffleArray(parsed.puzzles, seed);
+      
+      // Select the required number of puzzles for the game session.
+      const selectedPuzzles = allPuzzles.slice(0, count);
+
+      const puzzles: Puzzle[] = selectedPuzzles.map((p: any) => {
         if (p.type === 'ordering') {
+          // This shuffle is for the puzzle steps and should be random for each player.
           return { ...p, shuffled: [...p.steps].sort(() => Math.random() - 0.5) };
         }
         return p;
       });
-      return puzzles.slice(0, count);
+      return puzzles;
     }
 
     throw new Error('Failed to parse puzzles or puzzles array is empty');
@@ -105,7 +174,13 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
         { type: 'ordering', title: 'عملية حل المشكلات', shuffled: ['تحديد المشكلة', 'تحليل الأسباب', 'اقتراح الحلول', 'تنفيذ الحل وتقييمه'].sort(() => Math.random() - 0.5), steps: ['تحديد المشكلة', 'تحليل الأسباب', 'اقتراح الحلول', 'تنفيذ الحل وتقييمه'] },
         { type: 'visual', question: 'أي رمز يمثل "العمل الجماعي"؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'CollaborationIcon' },
         { type: 'visual', question: 'أي رمز يمثل "تحقيق الأهداف"؟', options: ['TargetIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'TargetIcon' },
+        { type: 'ordering', title: 'خطوات إدارة التغيير في الشركة', shuffled: ['تشخيص الوضع الحالي', 'وضع خطة التغيير', 'التواصل والتنفيذ', 'التقييم والمتابعة'].sort(() => Math.random() - 0.5), steps: ['تشخيص الوضع الحالي', 'وضع خطة التغيير', 'التواصل والتنفيذ', 'التقييم والمتابعة'] },
+        { type: 'visual', question: 'أي رمز يمثل "الوصول للهدف الاستراتيجي"؟', options: ['IdeaIcon', 'TargetIcon', 'CollaborationIcon', 'DataIcon'], answer: 'TargetIcon' },
+        { type: 'ordering', title: 'مراحل عملية التوظيف', shuffled: ['تحديد الاحتياج', 'الإعلان عن الوظيفة', 'مقابلة المرشحين', 'الاختيار والتعيين'].sort(() => Math.random() - 0.5), steps: ['تحديد الاحتياج', 'الإعلان عن الوظيفة', 'مقابلة المرشحين', 'الاختيار والتعيين'] },
+        { type: 'visual', question: 'أي رمز يمثل "تجميع الأفكار المتنوعة"؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'CollaborationIcon' },
+        { type: 'ordering', title: 'خطوات إعداد الميزانية السنوية', shuffled: ['تحديد الأهداف المالية', 'تقدير الإيرادات', 'تقدير النفقات', 'الموافقة والمراقبة'].sort(() => Math.random() - 0.5), steps: ['تحديد الأهداف المالية', 'تقدير الإيرادات', 'تقدير النفقات', 'الموافقة والمراقبة'] },
     ];
-    return mockPuzzles.slice(0, count);
+    // Shuffle the mock data and return a slice to simulate the random selection.
+    return shuffleArray(mockPuzzles).slice(0, count);
   }
 };

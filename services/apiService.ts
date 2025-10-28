@@ -9,7 +9,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbx0ehoZBOxkowsB-vqJHkw-
  * Converts a time string in "mm:ss" format or other strings to milliseconds.
  */
 const timeStringToMs = (timeStr: string): number => {
-    if (typeof timeStr !== 'string' || !/^\d{2}:\d{2}$/.test(timeStr)) {
+    // FIX: Updated regex to accept both single-digit and double-digit minutes (e.g., "3:55" and "03:55").
+    // This prevents parsing errors when Google Sheets auto-formats the time.
+    if (typeof timeStr !== 'string' || !/^\d{1,2}:\d{2}$/.test(timeStr)) {
         return Infinity;
     }
     const parts = timeStr.split(':');
@@ -67,15 +69,29 @@ const postToSheet = async (payload: object) => {
  */
 export const getAllScores = async (): Promise<PlayerScore[]> => {
     try {
-        // Add a cache-busting parameter to ensure we get the latest data, not a cached response.
-        const response = await fetch(`${API_URL}?t=${new Date().getTime()}`);
+        // Use a standard GET request to fetch all data from the API endpoint.
+        const response = await fetch(API_URL);
+
         if (!response.ok) {
             throw new Error(`Network response was not ok: ${response.statusText}`);
         }
         const apiResponse = await response.json();
 
-        if (apiResponse.success && Array.isArray(apiResponse.data)) {
-            const mappedScores: PlayerScore[] = apiResponse.data.map((item: any) => ({
+        // FIX: The logic for parsing API responses has been made more robust.
+        // It now correctly handles multiple valid formats: a raw array `[...]`,
+        // an object wrapping the array like `{"data": [...]}` (with or without a
+        // success flag), and an empty object `{}` for when no scores exist.
+        // This resolves the "API response format is incorrect" error.
+        let dataArray: any[] | null = null;
+
+        if (Array.isArray(apiResponse)) {
+            dataArray = apiResponse;
+        } else if (apiResponse && Array.isArray(apiResponse.data)) {
+            dataArray = apiResponse.data;
+        }
+
+        if (dataArray) {
+            const mappedScores: PlayerScore[] = dataArray.map((item: any) => ({
                 name: item.player_name,
                 points: typeof item.points === 'number' ? item.points : 0,
                 time: timeStringToMs(item.score),
@@ -83,10 +99,15 @@ export const getAllScores = async (): Promise<PlayerScore[]> => {
                 gaming: item.gaming,
             }));
             return mappedScores;
-        } else {
-            console.error("API response format is incorrect.", apiResponse);
+        }
+        
+        // Handle case where API returns an empty object for an empty sheet
+        if (apiResponse && typeof apiResponse === 'object' && !Array.isArray(apiResponse) && Object.keys(apiResponse).length === 0) {
             return [];
         }
+
+        console.error("API response format is incorrect.", apiResponse);
+        return [];
     } catch (error) {
         console.error("Failed to fetch scores from the remote database:", error);
         return [];
