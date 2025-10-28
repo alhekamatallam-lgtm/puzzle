@@ -162,25 +162,39 @@ export const fetchPuzzles = async (count: number, seed?: number): Promise<Puzzle
     throw new Error('Failed to parse puzzles or puzzles array is empty');
   } catch (error) {
     console.error("Error fetching puzzles from Gemini API:", error);
-    // Fallback to mock data if API fails
-    const mockPuzzles: Puzzle[] = [
-        { type: 'ordering', title: 'خطوات إطلاق منتج جديد', shuffled: ['إجراء أبحاث السوق', 'تطوير المنتج', 'اختبار النسخة التجريبية', 'التسويق والإطلاق'].sort(() => Math.random() - 0.5), steps: ['إجراء أبحاث السوق', 'تطوير المنتج', 'اختبار النسخة التجريبية', 'التسويق والإطلاق'] },
+    // Fallback to mock data if API fails.
+    // To ensure consistency in party mode, we define the base data here
+    // and then apply the same seeded shuffling logic as the API path.
+    const mockPuzzlesData: (Omit<OrderingPuzzle, 'shuffled'> | VisualPuzzle)[] = [
+        { type: 'ordering', title: 'خطوات إطلاق منتج جديد', steps: ['إجراء أبحاث السوق', 'تطوير المنتج', 'اختبار النسخة التجريبية', 'التسويق والإطلاق'] },
         { type: 'visual', question: 'أي رمز يمثل "النمو" في المشاريع؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'GrowthIcon' },
-        { type: 'ordering', title: 'مراحل التفكير التصميمي', shuffled: ['التعاطف', 'تحديد المشكلة', 'التفكير', 'النمذجة الأولية', 'الاختبار'].slice(0, 4).sort(() => Math.random() - 0.5), steps: ['التعاطف', 'تحديد المشكلة', 'التفكير', 'النمذجة الأولية', 'الاختبار'].slice(0, 4) },
+        { type: 'ordering', title: 'مراحل التفكير التصميمي', steps: ['التعاطف', 'تحديد المشكلة', 'التفكير', 'النمذجة الأولية', 'الاختبار'].slice(0, 4) },
         { type: 'visual', question: 'أي رمز يمثل "تحليل البيانات"؟', options: ['TargetIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'DataIcon' },
-        { type: 'ordering', title: 'خطوات جلسة عصف ذهني فعالة', shuffled: ['تحديد الهدف', 'توليد الأفكار بحرية', 'مناقشة وتجميع الأفكار', 'تحديد أفضل الحلول'].sort(() => Math.random() - 0.5), steps: ['تحديد الهدف', 'توليد الأفكار بحرية', 'مناقشة وتجميع الأفكار', 'تحديد أفضل الحلول'] },
-        { type: 'ordering', title: 'خطوات بناء علامة تجارية قوية', shuffled: ['تحديد هوية العلامة', 'تصميم الشعار', 'بناء استراتيجية المحتوى', 'التفاعل مع الجمهور'].sort(() => Math.random() - 0.5), steps: ['تحديد هوية العلامة', 'تصميم الشعار', 'بناء استراتيجية المحتوى', 'التفاعل مع الجمهور'] },
+        { type: 'ordering', title: 'خطوات جلسة عصف ذهني فعالة', steps: ['تحديد الهدف', 'توليد الأفكار بحرية', 'مناقشة وتجميع الأفكار', 'تحديد أفضل الحلول'] },
+        { type: 'ordering', title: 'خطوات بناء علامة تجارية قوية', steps: ['تحديد هوية العلامة', 'تصميم الشعار', 'بناء استراتيجية المحتوى', 'التفاعل مع الجمهور'] },
         { type: 'visual', question: 'أي رمز يمثل "الفكرة الجديدة"؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'IdeaIcon' },
-        { type: 'ordering', title: 'عملية حل المشكلات', shuffled: ['تحديد المشكلة', 'تحليل الأسباب', 'اقتراح الحلول', 'تنفيذ الحل وتقييمه'].sort(() => Math.random() - 0.5), steps: ['تحديد المشكلة', 'تحليل الأسباب', 'اقتراح الحلول', 'تنفيذ الحل وتقييمه'] },
+        { type: 'ordering', title: 'عملية حل المشكلات', steps: ['تحديد المشكلة', 'تحليل الأسباب', 'اقتراح الحلول', 'تنفيذ الحل وتقييمه'] },
         { type: 'visual', question: 'أي رمز يمثل "العمل الجماعي"؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'CollaborationIcon' },
         { type: 'visual', question: 'أي رمز يمثل "تحقيق الأهداف"؟', options: ['TargetIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'TargetIcon' },
-        { type: 'ordering', title: 'خطوات إدارة التغيير في الشركة', shuffled: ['تشخيص الوضع الحالي', 'وضع خطة التغيير', 'التواصل والتنفيذ', 'التقييم والمتابعة'].sort(() => Math.random() - 0.5), steps: ['تشخيص الوضع الحالي', 'وضع خطة التغيير', 'التواصل والتنفيذ', 'التقييم والمتابعة'] },
+        { type: 'ordering', title: 'خطوات إدارة التغيير في الشركة', steps: ['تشخيص الوضع الحالي', 'وضع خطة التغيير', 'التواصل والتنفيذ', 'التقييم والمتابعة'] },
         { type: 'visual', question: 'أي رمز يمثل "الوصول للهدف الاستراتيجي"؟', options: ['IdeaIcon', 'TargetIcon', 'CollaborationIcon', 'DataIcon'], answer: 'TargetIcon' },
-        { type: 'ordering', title: 'مراحل عملية التوظيف', shuffled: ['تحديد الاحتياج', 'الإعلان عن الوظيفة', 'مقابلة المرشحين', 'الاختيار والتعيين'].sort(() => Math.random() - 0.5), steps: ['تحديد الاحتياج', 'الإعلان عن الوظيفة', 'مقابلة المرشحين', 'الاختيار والتعيين'] },
+        { type: 'ordering', title: 'مراحل عملية التوظيف', steps: ['تحديد الاحتياج', 'الإعلان عن الوظيفة', 'مقابلة المرشحين', 'الاختيار والتعيين'] },
         { type: 'visual', question: 'أي رمز يمثل "تجميع الأفكار المتنوعة"؟', options: ['IdeaIcon', 'GrowthIcon', 'CollaborationIcon', 'DataIcon'], answer: 'CollaborationIcon' },
-        { type: 'ordering', title: 'خطوات إعداد الميزانية السنوية', shuffled: ['تحديد الأهداف المالية', 'تقدير الإيرادات', 'تقدير النفقات', 'الموافقة والمراقبة'].sort(() => Math.random() - 0.5), steps: ['تحديد الأهداف المالية', 'تقدير الإيرادات', 'تقدير النفقات', 'الموافقة والمراقبة'] },
+        { type: 'ordering', title: 'خطوات إعداد الميزانية السنوية', steps: ['تحديد الأهداف المالية', 'تقدير الإيرادات', 'تقدير النفقات', 'الموافقة والمراقبة'] },
     ];
-    // Shuffle the mock data and return a slice to simulate the random selection.
-    return shuffleArray(mockPuzzles).slice(0, count);
+
+    // Shuffle the mock data using the seed to ensure all players get the same set.
+    const allPuzzles = shuffleArray(mockPuzzlesData, seed);
+    const selectedPuzzles = allPuzzles.slice(0, count);
+
+    // Add the randomly shuffled steps for ordering puzzles. This is meant to be
+    // different for each player to make the puzzle itself a challenge.
+    const puzzles: Puzzle[] = selectedPuzzles.map((p: any) => {
+      if (p.type === 'ordering') {
+        return { ...p, shuffled: [...p.steps].sort(() => Math.random() - 0.5) };
+      }
+      return p;
+    });
+    return puzzles;
   }
 };
